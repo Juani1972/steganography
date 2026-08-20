@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+WORKDIR /app
+COPY . .
+# [social] incluye flask (necesaria para la GUI) además de las libs de los adaptadores
+RUN pip install -e ".[full,social]"
+# NOTA: --host=0.0.0.0 aquí es necesario para que el contenedor sea alcanzable
+# desde fuera (vía `docker run -p 127.0.0.1:8080:8080 ...`), a diferencia de
+# `python -m stegstr.gui.web_app` en local, que se limita a 127.0.0.1 a
+# propósito. Publica el puerto solo en 127.0.0.1 del host, nunca en 0.0.0.0
+# del host, ya que esta GUI maneja credenciales reales de redes sociales.
+CMD ["python", "-m", "flask", "--app", "stegstr.gui.web_app", "run", "--host=0.0.0.0", "--port=8080"]

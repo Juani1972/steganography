@@ -1,0 +1,130 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stegstr"
+version = "2.2.0"
+description = "Steganografía Robusta para Redes Sociales con Nostr, AI Agent y Validación Real"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Juani1972", email = "juani@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Multimedia :: Graphics",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+    "cryptography>=41.0.0",
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+    # NOTA: faltaba aquí pese a ser obligatoria — StegoEngine cifra siempre
+    # (incluso con la contraseña por defecto), así que sin esto cualquier
+    # embed()/extract() falla con RuntimeError aunque solo se instale el
+    # paquete base con `pip install -e .`
+    "argon2-cffi>=23.1.0",
+]
+
+[project.optional-dependencies]
+nostr = [
+    "websockets>=12.0",
+    "aiohttp>=3.9.0",
+    "secp256k1>=0.14.0",
+]
+agent = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+]
+full = [
+    "websockets>=12.0",
+    "aiohttp>=3.9.0",
+    "secp256k1>=0.14.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "reedsolo>=1.7.0",
+    "selenium>=4.15.0",
+    "requests>=2.31.0",
+]
+social = [
+    # Required by the real-world platform adapters
+    # (stegstr/platform/adapters/*.py) but previously undeclared anywhere,
+    # so `pip install -e ".[full]"` silently left Twitter/Reddit/Instagram
+    # broken with ImportError even with valid credentials configured.
+    "requests>=2.31.0",
+    "tweepy>=4.14.0",      # twitter.py
+    "praw>=7.7.0",         # reddit.py
+    "ngrok>=1.0.0",        # instagram.py (optional public tunnel)
+    "flask>=3.0.0",        # stegstr/gui/web_app.py (panel local de credenciales/pruebas)
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "hypothesis>=6.88.0",
+    "bandit>=1.7.5",
+    "safety>=2.3.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+all = [
+    # Atajo para instalar todo de una vez: pip install -e ".[all]"
+    # (lista explícita en vez de auto-referenciar extras del propio paquete,
+    # que puede fallar en instalaciones editable con setuptools antiguo)
+    "websockets>=12.0",
+    "aiohttp>=3.9.0",
+    "secp256k1>=0.14.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "reedsolo>=1.7.0",
+    "selenium>=4.15.0",
+    "requests>=2.31.0",
+    "tweepy>=4.14.0",
+    "praw>=7.7.0",
+    "ngrok>=1.0.0",
+    "flask>=3.0.0",
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "hypothesis>=6.88.0",
+    "bandit>=1.7.5",
+    "safety>=2.3.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+stegstr = "stegstr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Juani1972/steganography"
+Repository = "https://github.com/Juani1972/steganography"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ['stegstr*', 'tests*', 'benchmarks*', 'scripts*', 'examples*']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

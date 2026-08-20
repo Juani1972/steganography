@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  stegstr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stegstr-api
+    ports:
+      - "8000:8000"
+    environment:
+      - STEGSTR_ENV=production
+      - NOSTR_RELAYS=wss://relay.damus.io,wss://relay.nostr.band,wss://nos.lol
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - stegstr-data:/app/stegstr_data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  stegstr-gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.gui
+    container_name: stegstr-gui
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://stegstr-api:8000
+    depends_on:
+      - stegstr-api
+    restart: unless-stopped
+
+volumes:
+  stegstr-data:

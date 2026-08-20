@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include requirements.txt
+recursive-include stegstr *.py
+recursive-include stegstr/gui *.html
