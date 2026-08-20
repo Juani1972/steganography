@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Stegstr CLI v2.1.5
+Stegstr CLI v2.2.0
 """
 
 import sys
@@ -20,13 +20,11 @@ from stegstr.analysis.steganalysis import StegAnalyzer
 
 console = Console()
 
-
 @click.group()
-@click.version_option(version="2.1.5", prog_name="stegstr")
+@click.version_option(version="2.2.0", prog_name="stegstr")
 def cli():
     """Stegstr — Robust steganographic client for social media."""
     pass
-
 
 @cli.command()
 @click.option("--cover", "-c", required=True, type=click.Path(exists=True), help="Cover image path")
@@ -34,9 +32,9 @@ def cli():
 @click.option("--output", "-o", required=True, type=click.Path(), help="Output stego image path")
 @click.option("--mode", type=click.Choice([m.name for m in StegoMode]), help="Steganography mode")
 @click.option("--platform", "-p", type=click.Choice(["whatsapp_standard", "whatsapp_hd", "telegram_photo",
-                                                      "telegram_file", "instagram", "twitter", "facebook",
-                                                      "signal", "linkedin", "reddit"]),
-              help="Target platform profile")
+    "telegram_file", "instagram", "twitter", "facebook",
+    "signal", "linkedin", "reddit"]),
+    help="Target platform profile")
 @click.option("--password", help="Encryption password")
 @click.option("--delta", type=float, help="Delta override")
 @click.option("--ecc", type=int, help="ECC override")
@@ -60,7 +58,6 @@ def encode(cover, message, output, mode, platform, password, delta, ecc, output_
         for k, v in meta.items():
             table.add_row(k, str(v))
         console.print(table)
-
 
 @cli.command()
 @click.option("--stego", "-s", required=True, type=click.Path(exists=True), help="Stego image path")
@@ -91,14 +88,13 @@ def extract(stego, password, mode, output_json, decode_mode):
         )
         console.print(panel)
 
-
 @cli.command()
 @click.option("--cover", "-c", required=True, type=click.Path(exists=True), help="Cover image path")
 @click.option("--mode", type=click.Choice([m.name for m in StegoMode]), help="Steganography mode")
 @click.option("--platform", "-p", type=click.Choice(["whatsapp_standard", "whatsapp_hd", "telegram_photo",
-                                                      "telegram_file", "instagram", "twitter", "facebook",
-                                                      "signal", "linkedin", "reddit"]),
-              help="Target platform profile")
+    "telegram_file", "instagram", "twitter", "facebook",
+    "signal", "linkedin", "reddit"]),
+    help="Target platform profile")
 @click.option("--ecc", type=int, help="ECC override")
 def capacity(cover, mode, platform, ecc):
     """Show capacity of a cover image."""
@@ -107,14 +103,13 @@ def capacity(cover, mode, platform, ecc):
     cap = engine.get_capacity(cover, mode, platform=platform, ecc_bytes=ecc)
     console.print(f"[green]Capacity for {mode.name}:[/green] {cap} bytes")
 
-
 @cli.command()
 @click.option("--cover", "-c", required=True, type=click.Path(exists=True), help="Cover image path")
 @click.option("--message", "-m", required=True, help="Message to optimize for")
 @click.option("--platform", "-p", required=True, type=click.Choice(["whatsapp_standard", "whatsapp_hd", "telegram_photo",
-                                                                      "telegram_file", "instagram", "twitter", "facebook",
-                                                                      "signal", "linkedin", "reddit"]),
-              help="Target platform profile")
+    "telegram_file", "instagram", "twitter", "facebook",
+    "signal", "linkedin", "reddit"]),
+    help="Target platform profile")
 @click.option("--depth", type=click.Choice(["quick", "standard", "deep"]), default="standard", help="Search depth")
 @click.option("--json", "output_json", is_flag=True, help="Output JSON result")
 def optimize(cover, message, platform, depth, output_json):
@@ -132,7 +127,6 @@ def optimize(cover, message, platform, depth, output_json):
             table.add_row(k, str(v))
         console.print(table)
 
-
 @cli.command()
 @click.option("--cover", "-c", type=click.Path(exists=True), help="Cover image path")
 @click.option("--stego", "-s", type=click.Path(exists=True), help="Stego image path")
@@ -147,6 +141,86 @@ def analyze(cover, stego):
         console.print("[red]Provide --cover and --stego, or just --stego[/red]")
         sys.exit(1)
     console.print(json.dumps(report, indent=2, default=str))
+
+
+# ============================================================
+# NUEVO: Comando config (wizard de credenciales)
+# ============================================================
+@cli.command()
+@click.option("--list", "list_flag", is_flag=True, help="List configured platforms")
+@click.option("--set", "set_kv", nargs=2, type=str, help="Set a credential: KEY VALUE")
+@click.option("--get", "get_key", type=str, help="Get a credential value")
+@click.option("--delete", "del_key", type=str, help="Delete a credential")
+@click.option("--wizard", is_flag=True, help="Run interactive configuration wizard")
+@click.option("--test", "test_platform", type=str, help="Test connectivity for a platform")
+@click.option("--export-env", is_flag=True, help="Export credentials as shell exports")
+def config(list_flag, set_kv, get_key, del_key, wizard, test_platform, export_env):
+    """Manage social media credentials securely."""
+    from stegstr.config.wizard import (
+        load_credentials, save_credentials, set_credential, get_credential,
+        delete_credential, list_configured, run_wizard, test_platform as _test_platform,
+        export_env as _export_env, PLATFORMS
+    )
+
+    if wizard:
+        run_wizard()
+        return
+
+    if list_flag:
+        configs = list_configured()
+        table = Table(title="Credential Status")
+        table.add_column("Platform", style="cyan")
+        table.add_column("Status", style="magenta")
+        table.add_column("Missing", style="yellow")
+        for c in configs:
+            status = "[green]✓ configured[/green]" if c["configured"] else "[red]✗ missing[/red]"
+            missing = ", ".join(c["missing"]) if c["missing"] else "—"
+            table.add_row(c["label"], status, missing)
+        console.print(table)
+        return
+
+    if set_kv:
+        key, value = set_kv
+        set_credential(key, value)
+        console.print(f"[green]✓[/green] Set {key}")
+        return
+
+    if get_key:
+        val = get_credential(get_key)
+        if val:
+            masked = val[:4] + "***" + val[-4:] if len(val) > 12 else "***"
+            console.print(f"{get_key}: {masked}")
+        else:
+            console.print(f"[yellow]{get_key}: not set[/yellow]")
+        return
+
+    if del_key:
+        if delete_credential(del_key):
+            console.print(f"[green]✓[/green] Deleted {del_key}")
+        else:
+            console.print(f"[yellow]{del_key}: not found[/yellow]")
+        return
+
+    if test_platform:
+        ok = _test_platform(test_platform)
+        sys.exit(0 if ok else 1)
+
+    if export_env:
+        _export_env()
+        return
+
+    console.print("""[bold]Stegstr Config[/bold]
+
+Usage:
+  stegstr config --wizard          Run interactive wizard
+  stegstr config --list            Show all platforms status
+  stegstr config --set KEY VALUE   Save a credential
+  stegstr config --get KEY         Show a credential (masked)
+  stegstr config --delete KEY      Remove a credential
+  stegstr config --test PLATFORM   Test platform connectivity
+  stegstr config --export-env      Export as shell variables
+
+Platforms: """ + ", ".join(PLATFORMS.keys()))
 
 
 if __name__ == "__main__":

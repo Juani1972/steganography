@@ -1,0 +1,1 @@
+# Stegstr config package
