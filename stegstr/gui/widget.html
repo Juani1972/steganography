@@ -285,11 +285,11 @@ footer a:hover { text-decoration: underline; }
 
           <label style="margin-top:8px">Modo de estego</label>
           <select id="embedMode">
-            <option value="HYBRID" selected>HYBRID (recomendado)</option>
-            <option value="ARMOR">ARMOR (máxima robustez)</option>
-            <option value="FORTRESS">FORTRESS (anti-detección)</option>
-            <option value="STANDARD">STANDARD (equilibrado)</option>
-            <option value="AGGRESSIVE">AGGRESSIVE (máxima capacidad)</option>
+            <option value="HYBRID" selected>HYBRID (auto-selección)</option>
+            <option value="FORTRESS">FORTRESS (máxima robustez)</option>
+            <option value="ARMOR">ARMOR (robustez + capacidad)</option>
+            <option value="GHOST">GHOST (máxima capacidad PNG)</option>
+            <option value="PHANTOM">PHANTOM (anti-detección LSB-M)</option>
           </select>
 
           <label style="margin-top:8px">Plataforma objetivo (para auto-tune)</label>
@@ -300,7 +300,7 @@ footer a:hover { text-decoration: underline; }
             <option value="discord">Discord</option>
             <option value="twitter">Twitter/X</option>
             <option value="instagram">Instagram</option>
-            <option value="whatsapp">WhatsApp</option>
+            <option value="whatsapp_standard">WhatsApp</option>
             <option value="imgur">Imgur</option>
             <option value="reddit">Reddit</option>
           </select>
@@ -348,10 +348,10 @@ footer a:hover { text-decoration: underline; }
           <label style="margin-top:12px">Modo esperado (opcional)</label>
           <select id="extractMode">
             <option value="">Auto-detectar</option>
-            <option value="ARMOR">ARMOR</option>
             <option value="FORTRESS">FORTRESS</option>
-            <option value="STANDARD">STANDARD</option>
-            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
             <option value="HYBRID">HYBRID</option>
           </select>
 
@@ -421,8 +421,8 @@ footer a:hover { text-decoration: underline; }
           <select id="capacityMode">
             <option value="ARMOR" selected>ARMOR</option>
             <option value="FORTRESS">FORTRESS</option>
-            <option value="STANDARD">STANDARD</option>
-            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
             <option value="HYBRID">HYBRID</option>
           </select>
 
@@ -434,7 +434,7 @@ footer a:hover { text-decoration: underline; }
             <option value="discord">Discord</option>
             <option value="twitter">Twitter/X</option>
             <option value="instagram">Instagram</option>
-            <option value="whatsapp">WhatsApp</option>
+            <option value="whatsapp_standard">WhatsApp</option>
             <option value="imgur">Imgur</option>
             <option value="reddit">Reddit</option>
           </select>
@@ -476,8 +476,8 @@ footer a:hover { text-decoration: underline; }
           <select id="benchmarkMode">
             <option value="ARMOR" selected>ARMOR</option>
             <option value="FORTRESS">FORTRESS</option>
-            <option value="STANDARD">STANDARD</option>
-            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
             <option value="HYBRID">HYBRID</option>
           </select>
 
@@ -502,7 +502,6 @@ footer a:hover { text-decoration: underline; }
         Sube tu imagen stego a plataformas reales. Introduce las credenciales directamente en el formulario
         o configúralas como variables de entorno en el servidor.
       </p>
-
 
       <!-- ═══════ CREDENTIALS CONFIGURATION ═══════ -->
       <h3>🔐 Configurar credenciales</h3>
@@ -595,14 +594,14 @@ footer a:hover { text-decoration: underline; }
           <label style="margin-top:8px">Modo de estego (para validación E2E)</label>
           <select id="publishMode">
             <option value="auto">Auto-detectar</option>
-            <option value="ARMOR">ARMOR</option>
             <option value="FORTRESS">FORTRESS</option>
-            <option value="STANDARD">STANDARD</option>
-            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
             <option value="HYBRID">HYBRID</option>
           </select>
 
-          <!-- Credenciales dinámicas -->
+          <!-- Credenciales dinámicas inline -->
           <div id="credentialsBox" style="margin-top:16px; display:none">
             <h3>🔑 Credenciales de la plataforma</h3>
             <p class="cred-hint" style="margin-bottom:10px">
@@ -673,32 +672,36 @@ footer a:hover { text-decoration: underline; }
                 <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN" placeholder="...">
               </div>
               <div class="cred-field">
-                <label>Access Secret</label>
-                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_SECRET" placeholder="...">
+                <label>Access Token Secret</label>
+                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN_SECRET" placeholder="...">
               </div>
             </div>
 
             <!-- Instagram -->
             <div class="cred-group" data-platform="instagram">
               <div class="cred-field">
-                <label>Username</label>
-                <input type="text" class="cred-input" data-key="INSTAGRAM_USERNAME" placeholder="tu_usuario">
+                <label>Business Account ID</label>
+                <input type="text" class="cred-input" data-key="INSTAGRAM_BUSINESS_ACCOUNT_ID" placeholder="17841400000000000">
               </div>
               <div class="cred-field">
-                <label>Password</label>
-                <input type="password" class="cred-input" data-key="INSTAGRAM_PASSWORD" placeholder="tu_contraseña">
+                <label>Meta Page Access Token</label>
+                <input type="password" class="cred-input" data-key="META_PAGE_ACCESS_TOKEN" placeholder="EAA...">
               </div>
             </div>
 
             <!-- WhatsApp -->
             <div class="cred-group" data-platform="whatsapp">
               <div class="cred-field">
-                <label>API Key</label>
-                <input type="password" class="cred-input" data-key="WHATSAPP_API_KEY" placeholder="...">
+                <label>Business Phone ID</label>
+                <input type="text" class="cred-input" data-key="WHATSAPP_BUSINESS_PHONE_ID" placeholder="123456789012345">
               </div>
               <div class="cred-field">
-                <label>Número de teléfono</label>
-                <input type="text" class="cred-input" data-key="WHATSAPP_PHONE_NUMBER" placeholder="+34123456789">
+                <label>Access Token</label>
+                <input type="password" class="cred-input" data-key="WHATSAPP_ACCESS_TOKEN" placeholder="EAA...">
+              </div>
+              <div class="cred-field">
+                <label>Recipient Phone (self-messaging)</label>
+                <input type="text" class="cred-input" data-key="WHATSAPP_RECIPIENT_PHONE" placeholder="+34123456789">
               </div>
             </div>
 
@@ -756,6 +759,7 @@ footer a:hover { text-decoration: underline; }
  */
 const API_BASE = "http://127.0.0.1:8080";
 let currentPubResult = null;
+let lastCapacityBytes = 0;
 
 // ── UI Helpers ──
 
@@ -938,6 +942,9 @@ document.getElementById('capacityBtn').addEventListener('click', async () => {
   const res = await fetch(API_BASE + '/capacity', { method: 'POST', body: fd });
   const data = await res.json();
   document.getElementById('capacityResult').textContent = JSON.stringify(data, null, 2);
+  if (data.success && data.capacity_bytes) {
+    lastCapacityBytes = data.capacity_bytes;
+  }
   showToast(data.success ? 'Capacidad calculada' : (data.error || 'Error'), data.success ? 'success' : 'error');
 });
 
@@ -945,6 +952,7 @@ document.getElementById('capacityClear').addEventListener('click', () => {
   document.getElementById('capacityFile').value = '';
   document.getElementById('capacityPreview').style.display = 'none';
   document.getElementById('capacityResult').textContent = 'Esperando...';
+  lastCapacityBytes = 0;
 });
 
 // ── BENCHMARK ──
@@ -989,9 +997,9 @@ const CREDENTIAL_MAP = {
   discord:   ['DISCORD_WEBHOOK_URL'],
   imgur:     ['IMGUR_CLIENT_ID'],
   reddit:    ['REDDIT_CLIENT_ID','REDDIT_CLIENT_SECRET','REDDIT_USERNAME','REDDIT_PASSWORD'],
-  twitter:   ['TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_SECRET'],
-  instagram: ['INSTAGRAM_USERNAME','INSTAGRAM_PASSWORD'],
-  whatsapp:  ['WHATSAPP_API_KEY','WHATSAPP_PHONE_NUMBER'],
+  twitter:   ['TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_TOKEN_SECRET'],
+  instagram: ['INSTAGRAM_BUSINESS_ACCOUNT_ID','META_PAGE_ACCESS_TOKEN'],
+  whatsapp:  ['WHATSAPP_BUSINESS_PHONE_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_RECIPIENT_PHONE'],
   nostr:     ['NOSTR_PRIVATE_KEY']
 };
 
@@ -1018,7 +1026,6 @@ function updatePublishSteps() {
   if (file) step = 2;
   if (file && platform) step = 3;
   if (file && platform) {
-    // Si hay credenciales introducidas o se usarán las del servidor, pasamos al paso 4
     const inputs = document.querySelectorAll('.cred-group.active .cred-input');
     const hasCreds = Array.from(inputs).some(i => i.value.trim() !== '');
     if (hasCreds || inputs.length === 0) step = 4;
@@ -1056,15 +1063,7 @@ async function doPublish(validate = false) {
   if (caption) fd.append('caption', caption);
   if (validate) fd.append('mode', mode);
 
-  // Si hay campos de credenciales inline visibles, incluirlos
-  const credFields = document.querySelectorAll('[id^="pub_cred_"]');
-  credFields.forEach(el => {
-    if (el.value.trim()) {
-      fd.append(el.name, el.value.trim());
-    }
-  });
-
-  // Añadir credenciales
+  // Añadir credenciales inline
   const creds = collectCredentials();
   if (Object.keys(creds).length > 0) {
     fd.append('credentials', JSON.stringify(creds));
@@ -1177,12 +1176,13 @@ const CRED_FIELDS = {
     {key:"access_token_secret", label:"Access Token Secret", type:"password", placeholder:"Access Token Secret"},
   ],
   instagram:  [
-    {key:"username", label:"Username", type:"text", placeholder:"Tu usuario Instagram"},
-    {key:"password", label:"Password", type:"password", placeholder:"Tu contraseña Instagram"},
+    {key:"business_account_id", label:"Business Account ID", type:"text", placeholder:"17841400000000000"},
+    {key:"page_access_token", label:"Meta Page Access Token", type:"password", placeholder:"EAA..."},
   ],
   whatsapp:   [
-    {key:"api_key", label:"API Key", type:"password", placeholder:"API Key de WhatsApp Business"},
-    {key:"phone_number", label:"Phone Number ID", type:"text", placeholder:"ID del número de teléfono"},
+    {key:"business_phone_id", label:"Business Phone ID", type:"text", placeholder:"123456789012345"},
+    {key:"access_token", label:"Access Token", type:"password", placeholder:"EAA..."},
+    {key:"recipient_phone", label:"Recipient Phone", type:"text", placeholder:"+34123456789"},
   ],
   nostr:      [
     {key:"private_key", label:"Private Key (nsec)", type:"password", placeholder:"nsec1..."},
