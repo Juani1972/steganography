@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-Stegstr Config Wizard v2.2
+Stegstr Config Wizard v2.2.0
 Gestion interactiva de credenciales para adaptadores de redes sociales.
 Guarda en ~/.config/stegstr/credentials.json con permisos 0o600.
+
+Las variables de entorno definidas aqui coinciden con las que usan
+stegstr/platform/adapters/*.py y check_credentials.py.
 """
 import os
 import json
@@ -13,6 +16,7 @@ from getpass import getpass
 CONFIG_DIR = Path.home() / ".config" / "stegstr"
 CREDENTIALS_FILE = CONFIG_DIR / "credentials.json"
 
+# Variables sincronizadas con check_credentials.py y los adaptadores reales
 PLATFORMS = {
     "instagram": {
         "label": "Instagram",
@@ -26,18 +30,13 @@ PLATFORMS = {
     },
     "telegram": {
         "label": "Telegram",
-        "env": ["TELEGRAM_BOT_TOKEN"],
+        "env": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
         "help": "Habla con @BotFather en Telegram para crear un bot y obtener el token."
     },
     "whatsapp": {
         "label": "WhatsApp",
-        "env": ["WHATSAPP_PHONE", "WHATSAPP_PASSWORD"],
-        "help": "Credenciales de la cuenta de WhatsApp Business API."
-    },
-    "signal": {
-        "label": "Signal",
-        "env": ["SIGNAL_USERNAME", "SIGNAL_PASSWORD"],
-        "help": "Credenciales de la cuenta de Signal."
+        "env": ["WHATSAPP_BUSINESS_PHONE_ID", "WHATSAPP_ACCESS_TOKEN", "WHATSAPP_RECIPIENT_PHONE"],
+        "help": "Credenciales de la API de WhatsApp Business. Usa el mismo numero como remitente y destinatario para self-messaging."
     },
     "reddit": {
         "label": "Reddit",
@@ -49,6 +48,11 @@ PLATFORMS = {
         "env": ["DISCORD_WEBHOOK_URL"],
         "help": "Crea un webhook en la configuracion de un canal de Discord."
     },
+    "imgur": {
+        "label": "Imgur",
+        "env": ["IMGUR_CLIENT_ID"],
+        "help": "Registra una app en api.imgur.com para obtener un client ID."
+    },
     "nostr": {
         "label": "Nostr",
         "env": ["NOSTR_PRIVATE_KEY"],
@@ -56,11 +60,9 @@ PLATFORMS = {
     },
 }
 
-
 def _ensure_config_dir():
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     os.chmod(CONFIG_DIR, 0o700)
-
 
 def load_credentials():
     if not CREDENTIALS_FILE.exists():
@@ -71,13 +73,11 @@ def load_credentials():
     except (json.JSONDecodeError, IOError):
         return {}
 
-
 def save_credentials(creds):
     _ensure_config_dir()
     with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
         json.dump(creds, f, indent=2, ensure_ascii=False)
     os.chmod(CREDENTIALS_FILE, 0o600)
-
 
 def set_credential(key, value):
     creds = load_credentials()
@@ -86,10 +86,8 @@ def set_credential(key, value):
     os.environ[key] = value
     return True
 
-
 def get_credential(key, default=None):
     return os.getenv(key) or load_credentials().get(key, default)
-
 
 def delete_credential(key):
     creds = load_credentials()
@@ -100,7 +98,6 @@ def delete_credential(key):
             del os.environ[key]
         return True
     return False
-
 
 def list_configured():
     creds = load_credentials()
@@ -116,11 +113,10 @@ def list_configured():
         })
     return result
 
-
 def run_wizard():
     print("\n" + "=" * 60)
-    print("  Stegstr Config Wizard v2.2")
-    print("  Configuracion de credenciales para redes sociales")
+    print(" Stegstr Config Wizard v2.2.0")
+    print(" Configuracion de credenciales para redes sociales")
     print("=" * 60 + "\n")
     print("Las credenciales se guardaran en:")
     print(f"  {CREDENTIALS_FILE}")
@@ -160,7 +156,6 @@ def run_wizard():
     print("Para ver el estado:")
     print("  stegstr config --list\n")
 
-
 def test_platform(platform_key):
     if platform_key not in PLATFORMS:
         print(f"[✗] Plataforma desconocida: {platform_key}")
@@ -171,7 +166,7 @@ def test_platform(platform_key):
     if missing:
         print(f"[✗] {info['label']} — faltan credenciales:")
         for m in missing:
-            print(f"    - {m}")
+            print(f"  - {m}")
         return False
     print(f"[→] Probando {info['label']}...")
     try:
@@ -179,7 +174,7 @@ def test_platform(platform_key):
         adapter = get_adapter(platform_key)
         if adapter is None:
             print(f"[✗] Adapter no encontrado para {platform_key}")
-            print(f"    Instala dependencias: pip install stegstr[social]")
+            print(f"  Instala dependencias: pip install stegstr[social]")
             return False
         if adapter.is_available():
             print(f"[✓] {info['label']} — conexion OK")
@@ -189,12 +184,11 @@ def test_platform(platform_key):
             return False
     except ImportError:
         print(f"[✗] Modulo de adaptadores no instalado")
-        print(f"    Ejecuta: pip install stegstr[social]")
+        print(f"  Ejecuta: pip install stegstr[social]")
         return False
     except Exception as e:
         print(f"[✗] Error: {e}")
         return False
-
 
 def export_env():
     creds = load_credentials()
@@ -204,7 +198,7 @@ def export_env():
     for k, v in creds.items():
         print(f'export {k}="{v}"')
 
-
+# Auto-cargar credenciales al importar el modulo
 _ensure_config_dir()
 for _k, _v in load_credentials().items():
     if _k not in os.environ:

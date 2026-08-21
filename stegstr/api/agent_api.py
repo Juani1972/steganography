@@ -21,18 +21,15 @@ except ImportError:
 
 from stegstr.ai_agent.interface import AIAgent
 
-
 class AgentRequest(BaseModel):
     action: str = Field(..., description="Agent action")
     parameters: Dict[str, Any] = Field(default_factory=dict)
-
 
 class AgentResponse(BaseModel):
     success: bool
     action: str
     data: Dict[str, Any]
     error: Optional[str] = None
-
 
 _agent_instance: Optional[AIAgent] = None
 
@@ -44,7 +41,7 @@ async def lifespan(app: FastAPI):
     _agent_instance = None
 
 if HAS_FASTAPI:
-    app = FastAPI(title="Stegstr AI Agent API", description="REST API for agent operations", version="2.1.5", lifespan=lifespan)
+    app = FastAPI(title="Stegstr AI Agent API", description="REST API for agent operations", version="2.2.0", lifespan=lifespan)
 
     @app.post("/agent/execute", response_model=AgentResponse)
     async def execute(request: AgentRequest):
@@ -61,6 +58,6 @@ if HAS_FASTAPI:
 
     @app.get("/health")
     async def health():
-        return {"status": "ok", "version": "2.1.5", "agent_ready": _agent_instance is not None}
+        return {"status": "ok", "version": "2.2.0", "agent_ready": _agent_instance is not None}
 else:
     app = None

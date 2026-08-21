@@ -1,5 +1,5 @@
 """
-Stegstr Steganography Engine v2.1.5
+Stegstr Steganography Engine v2.2.0
 
 5 modes: FORTRESS, ARMOR, GHOST, PHANTOM, HYBRID
 Crypto: AES-256-GCM + Argon2id
@@ -26,14 +26,12 @@ MAX_EXTRACT_ITERATIONS = 30
 SUPPORTED_VERSIONS = {2, 3}
 VALID_ECC_VALUES = {0, 16, 24, 32, 40, 48, 64, 96}
 
-
 class StegoMode(Enum):
     FORTRESS = auto()
     ARMOR = auto()
     GHOST = auto()
     PHANTOM = auto()
     HYBRID = auto()
-
 
 class StegoEngine:
     PLATFORM_PROFILES = {
@@ -499,7 +497,7 @@ class StegoEngine:
                 raise ValueError(f"Path traversal detected: {path} is outside {allowed_base}")
 
         blocked_prefixes = ("/etc/", "/proc/", "/sys/", "/dev/", "/var/log/",
-                           "C:/Windows", "C:/Program Files", "C:/System32")
+                            "C:/Windows", "C:/Program Files", "C:/System32")
         path_lower = str(p).lower()
         for prefix in blocked_prefixes:
             if path_lower.startswith(prefix.lower()):

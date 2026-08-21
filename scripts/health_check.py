@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
 """
-Health check for Stegstr v2.1.5
+Health check for Stegstr v2.2.0
 
 Verifies:
-  - Core dependencies (numpy, pillow, cryptography)
+  - Core dependencies (numpy, pillow, cryptography, scipy)
   - Optional dependencies (websockets, aiohttp, secp256k1)
   - Nostr client importability
   - SyncManager importability
   - Stego engine roundtrip (quick)
 """
 import sys
-import subprocess
 import importlib
 
-
-def check_module(name, optional=False):
+def check_module(name, optional=False, display_name=None):
+    dn = display_name or name
     try:
         importlib.import_module(name)
-        print(f"  ✓ {name}")
+        print(f"  ✓ {dn}")
         return True
     except ImportError as e:
         status = "⚠ OPTIONAL" if optional else "✗ MISSING"
-        print(f"  {status} {name}: {e}")
+        print(f"  {status} {dn}: {e}")
         return optional
-
 
 def main():
     print("=" * 60)
-    print("Stegstr v2.1.5 Health Check")
+    print("Stegstr v2.2.0 Health Check")
     print("=" * 60)
 
     ok = True
@@ -35,9 +33,10 @@ def main():
     ok &= check_module("numpy")
     ok &= check_module("PIL")
     ok &= check_module("cryptography")
-    ok &= check_module("click")
     ok &= check_module("rich")
+    ok &= check_module("typer")
     ok &= check_module("argon2")
+    ok &= check_module("scipy")
     ok &= check_module("reedsolo")
 
     print("\nOptional dependencies:")
@@ -46,7 +45,7 @@ def main():
     ok &= check_module("secp256k1", optional=True)
     ok &= check_module("fastapi", optional=True)
     ok &= check_module("uvicorn", optional=True)
-    ok &= check_module("skimage", optional=True)
+    ok &= check_module("skimage", optional=True, display_name="scikit-image (skimage)")
 
     print("\nStegstr imports:")
     try:
@@ -84,7 +83,6 @@ def main():
     else:
         print("❌ Some checks failed. Run: pip install -e '.[full,nostr,agent,dev]'")
         return 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1,153 +1,141 @@
-# Stegstr — Actualización: arreglos de comunicación con redes sociales
+# Instrucciones de actualización — Stegstr v2.2.0
 
-## Qué cambió en esta actualización (sobre el ZIP que subiste al principio)
+Este paquete corrige las discrepancias críticas entre el README y el código real,
+sincroniza las versiones, añade dependencias faltantes, y marca los placeholders.
 
-Ver **`PATCH_NOTES.md`** para el detalle completo de los 6 arreglos en
-`stegstr/platform/adapters/` (Instagram, WhatsApp, Discord, Twitter) y en
-`requirements.txt`/`pyproject.toml` (dependencias que faltaban).
+## 📦 Contenido del paquete
 
-Además se añaden dos ficheros nuevos que no existían en el proyecto original:
-- **`.env.example`** — plantilla con todas las variables de credenciales que
-  necesita cada adaptador, comentada y con enlaces a dónde conseguir cada una.
-- **`check_credentials.py`** — script que te dice, plataforma por plataforma,
-  qué variable de entorno falta.
+```
+stegstr-v2.2.0-update/
+├── README.md                          ← Reescrito completo (CLI real, credenciales, placeholders)
+├── pyproject.toml                     ← scipy en base, versión 2.2.0
+├── .env.example                       ← Nuevo: variables de entorno documentadas
+├── validate.py                        ← Versión 2.2.0
+├── apply_patches.py                   ← Script automático de aplicación
+├── UPDATE_INSTRUCTIONS.md             ← Este archivo
+├── stegstr/
+│   ├── stego/engine.py                ← Versión 2.2.0
+│   ├── config/wizard.py               ← Credenciales sincronizadas con adaptadores
+│   ├── api/
+│   │   ├── agent_api.py               ← Versión 2.2.0
+│   │   └── server.py                  ← NotImplementedError + @TODO
+│   ├── video/engine.py                ← NotImplementedError + @TODO
+│   ├── gui/widget.html                ← Aviso de placeholder + versión 2.2.0
+│   └── ...
+└── scripts/
+    └── health_check.py                ← Versión 2.2.0, typer, scipy
+```
 
-## Novedad: GUI local para credenciales y pruebas
-
-En vez de editar el `.env` a mano, ahora puedes usar un panel web que corre
-en tu propia máquina:
+## ⚡ Método rápido: script automático
 
 ```bash
-pip install -e ".[social]"   # incluye flask
-python -m stegstr.gui.web_app
-# abre http://127.0.0.1:8080
+cd tu_repo_stegstr
+# Copia el paquete dentro del repo (o descomprime aquí)
+cp -r /ruta/a/stegstr-v2.2.0-update/* .
+
+# Aplica todos los cambios automáticamente
+python apply_patches.py
 ```
 
-Desde ahí puedes:
-- Ver de un vistazo qué plataformas tienen credenciales y cuáles no.
-- Rellenar un formulario por plataforma que guarda directamente en `.env`
-  (nunca sale de tu equipo — el servidor solo escucha en `127.0.0.1`).
-- Pulsar "Probar" sobre cualquier plataforma configurada para lanzar una
-  prueba real (embed → subir → descargar → extraer) y ver el resultado
-  completo en el navegador, sin tocar la terminal.
+El script `apply_patches.py`:
+1. Sobreescribe los archivos que cambian completamente
+2. Hace reemplazos in-place de versión en archivos grandes
+3. Verifica que cada cambio se aplicó correctamente
 
-Probado en este entorno (sin red externa, solo localhost): el servidor
-arranca, el dashboard responde, el formulario guarda correctamente en
-`.env` conservando los comentarios y sin borrar plataformas ya configuradas,
-y la ruta de prueba ejecuta de verdad `scripts/real_world_benchmark.py` y
-muestra el resultado sin romperse. Lo que no se ha podido probar aquí es
-una subida real contra una API externa — eso requiere tus credenciales e
-internet, en tu máquina.
+## 🛠️ Método manual (si prefieres control paso a paso)
 
-## Cómo aplicar esta actualización
-
-1. Descomprime este ZIP y sustituye tu carpeta del proyecto por esta (o copia
-   encima los ficheros modificados si prefieres conservar tus propios cambios):
-   ```bash
-   cp -r steganography_repo_v2/* /ruta/a/tu/proyecto/
-   ```
-
-2. Instala las dependencias que faltaban (necesita internet; no se pudo hacer
-   en el entorno donde se preparó este parche):
-   ```bash
-   pip install -e ".[full,social,nostr,dev]"
-   ```
-
-3. Configura tus credenciales:
-   ```bash
-   cp .env.example .env
-   # rellena .env con las plataformas que vayas a usar
-   export $(grep -v '^#' .env | xargs)
-   python check_credentials.py
-   ```
-
-4. Verifica que el entorno está bien y que los tests pasan:
-   ```bash
-   python check_env.py
-   python validate.py
-   python scripts/real_world_benchmark.py --list
-   ```
-
-5. Prueba con Discord o Imgur primero (son las más simples de configurar)
-   antes de meterte con Instagram/WhatsApp/Twitter.
-
----
-
-
-
-## What changed (from v2.1.3/2.1.4)
-
-### Fixed bugs
-- `pyproject.toml`: TOML escape fixed (`\.pyi?$` → `\.pyi?$` as raw string), version synced to 2.1.5
-- `validate.py`: Added missing `import zlib`, fixed `test_delta_bounds` to match engine constants, added `test_binary_data` with encoding detection, added `test_nostr_lifecycle`
-- `stegstr/stego/engine.py`:
-  - `_safe_zlib_decompress`: Now checks `len(buf) >= max_size` in addition to `unconsumed_tail`
-  - `_check_path_security`: Removed duplicate `@staticmethod` decorator
-  - `extract()`: Returns `encoding` field (`utf-8` or `base64`) for binary payload support
-- `stegstr/cli.py`: Version bumped to 2.1.5, added `--decode` option in `extract`
-
-### New features
-- `stegstr/ai_agent/interface.py`: Full AI Agent tool-calling API (replaces placeholder)
-  - Actions: `analyze_carrier`, `estimate_capacity`, `recommend_parameters`, `encode`, `decode`, `simulate_platform`, `auto_optimize`, `benchmark_detectability`, `list_actions`
-  - All methods return JSON-serializable dicts for LLM integration
-- `stegstr/networking/sync_manager.py`: Real SyncManager (replaces placeholder)
-  - Message states: CREATED → QUEUED → SENT → RECEIVED → VERIFIED → FAILED → RETRYING
-  - Retry with exponential backoff, deduplication, integrity verification, persistent store
-- `stegstr/api/agent_api.py`: Optional FastAPI REST server for the AI Agent
-  - Endpoints: `POST /agent/execute`, `GET /agent/actions`, `GET /health`
-- `tests/test_nostr.py`: Real tests for Nostr client (event determinism, key derivation, connect/disconnect, handler registration)
-
-## How to apply
-
-1. Copy all files from this ZIP into your repository root, overwriting existing files:
-   ```bash
-   cp -r stegstr-v2.1.5/* /path/to/your/repo/
-   ```
-
-2. Install/update dependencies:
-   ```bash
-   pip install -e ".[all]"
-   ```
-
-3. Run validation:
-   ```bash
-   python validate.py
-   pytest tests/test_nostr.py -v
-   ```
-
-4. Expected result: 32/32 tests pass in `validate.py`, Nostr tests pass (or skip if `secp256k1` not installed).
-
-## Version checklist
-Ensure these files show `2.1.5`:
-- `pyproject.toml`
-- `stegstr/__init__.py`
-- `stegstr/stego/engine.py` (docstring)
-- `stegstr/cli.py`
-- `stegstr/api/agent_api.py`
-- `validate.py`
-
-## Post-update: README additions
-Add these sections to your `README.md` before submission:
-
-### AI Agent Operability
-```python
-from stegstr.ai_agent.interface import AIAgent
-agent = AIAgent()
-result = agent.execute({"action": "encode", "carrier": "cover.png", "message": "hello", "output": "stego.png", "platform": "whatsapp_standard"})
+### Paso 1: Reescribir el README
+```bash
+cp stegstr-v2.2.0-update/README.md README.md
 ```
 
-### Networking
-```python
-import asyncio
-from stegstr.networking.sync_manager import SyncManager
-sm = SyncManager(private_key_hex="your_key")
-await sm.start()
-msg_id = await sm.send_message(payload_b64="...", platform_hint="whatsapp_standard")
+### Paso 2: Corregir dependencias
+```bash
+cp stegstr-v2.2.0-update/pyproject.toml pyproject.toml
 ```
 
-### Benchmark Matrix
-| Platform | Mode | Max Msg | ECC | Delta | Sim Survival | PSNR | SSIM |
-|----------|------|---------|-----|-------|-------------|------|------|
-| WhatsApp Std | FORTRESS | ~150 B | 96 | 8.0 | 100% | ~39 | ~0.98 |
-| Telegram Photo | ARMOR | ~3 KB | 40 | 4.0 | 100% | ~42 | ~0.99 |
-| Instagram | FORTRESS | ~150 B | 96 | 10.0 | 95% | ~37 | ~0.97 |
+### Paso 3: Sincronizar versiones
+En los siguientes archivos, busca y reemplaza `v2.1.5` o `2.1.5` por `2.2.0`:
+- `stegstr/stego/engine.py` (primera línea del docstring)
+- `validate.py` (docstring + print)
+- `scripts/health_check.py` (docstring + print + click→typer + añadir scipy)
+- `stegstr/api/agent_api.py` (versión FastAPI + endpoint /health)
+
+### Paso 4: Sincronizar wizard de credenciales
+```bash
+cp stegstr-v2.2.0-update/stegstr/config/wizard.py stegstr/config/wizard.py
+```
+
+### Paso 5: Marcar placeholders
+```bash
+cp stegstr-v2.2.0-update/stegstr/video/engine.py stegstr/video/engine.py
+cp stegstr-v2.2.0-update/stegstr/api/server.py stegstr/api/server.py
+cp stegstr-v2.2.0-update/stegstr/gui/widget.html stegstr/gui/widget.html
+```
+
+### Paso 6: Añadir .env.example
+```bash
+cp stegstr-v2.2.0-update/.env.example .env.example
+```
+
+## 🔧 Post-instalación
+
+### Reinstalar dependencias
+```bash
+pip install -e ".[all]"
+```
+
+Esto instalará `scipy` (ahora obligatorio en base) y cualquier dependencia nueva.
+
+### Verificar que todo funciona
+```bash
+python validate.py              # 32 tests de integridad
+python check_env.py             # Dependencias funcionales
+python -m stegstr.cli --help    # CLI con comandos reales
+python check_credentials.py     # Estado de credenciales
+```
+
+### Probar el wizard
+```bash
+python -m stegstr.cli config --wizard
+python -m stegstr.cli config --list
+```
+
+## 📝 Resumen de cambios
+
+| Cambio | Archivos afectados | Impacto |
+|--------|-------------------|---------|
+| README reescrito | `README.md` | Los usuarios ahora ven los comandos CLI reales |
+| scipy en base | `pyproject.toml` | `pip install -e .` ya no deja el motor roto para FORTRESS/ARMOR |
+| Versiones unificadas | 6 archivos | Elimina confusión de 2.1.5 vs 2.2 vs 2.2.0 |
+| Wizard sincronizado | `stegstr/config/wizard.py` | Las credenciales del wizard ahora coinciden con los adaptadores |
+| Placeholders marcados | `video/engine.py`, `api/server.py`, `widget.html` | Usuarios ven `NotImplementedError` en lugar de silencioso fallo |
+| .env.example nuevo | `.env.example` | Alternativa al wizard, documentado correctamente |
+| health_check actualizado | `scripts/health_check.py` | Verifica typer y scipy |
+
+## ⚠️ Notas importantes
+
+- **No borres el README antiguo** sin haberlo revisado: contiene información técnica valiosa (explicaciones de algoritmos, notas de parches) que el nuevo README mantiene pero reorganiza.
+- **Los tests existentes no se modifican**: todos los tests pytest (`tests/test_*.py`) permanecen intactos.
+- **Backward compatibility**: el motor sigue soportando payloads v2 y v3. Los cambios son solo de documentación, versiones y dependencias.
+- **Si algo falla** tras aplicar los cambios, ejecuta `python validate.py` para identificar qué componente tiene problemas.
+
+## 🐛 Troubleshooting
+
+### "scipy not found" tras reinstalar
+```bash
+pip install scipy
+# o
+pip install -e ".[full]"
+```
+
+### "typer not found" en health_check
+```bash
+pip install typer
+```
+
+### Placeholders siguen sin levantar error
+Asegúrate de haber copiado los archivos del paquete, no solo de haber editado a mano.
+
+### Wizard no reconoce mis credenciales antiguas
+El wizard nuevo usa nombres de variables distintos (sincronizados con los adaptadores). Las credenciales guardadas en `~/.config/stegstr/credentials.json` con los nombres antiguos no serán reconocidas. Vuelve a configurar con `python -m stegstr.cli config --wizard`.

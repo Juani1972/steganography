@@ -31,11 +31,14 @@ dependencies = [
     "cryptography>=41.0.0",
     "rich>=13.0.0",
     "typer>=0.9.0",
-    # NOTA: faltaba aquí pese a ser obligatoria — StegoEngine cifra siempre
+    # argon2-cffi es obligatorio — StegoEngine cifra siempre
     # (incluso con la contraseña por defecto), así que sin esto cualquier
     # embed()/extract() falla con RuntimeError aunque solo se instale el
     # paquete base con `pip install -e .`
     "argon2-cffi>=23.1.0",
+    # scipy es obligatorio para los modos DCT (FORTRESS, ARMOR, HYBRID)
+    # ya que el motor usa scipy.fftpack.dct/idct internamente
+    "scipy>=1.11.0",
 ]
 
 [project.optional-dependencies]
@@ -60,14 +63,12 @@ full = [
 ]
 social = [
     # Required by the real-world platform adapters
-    # (stegstr/platform/adapters/*.py) but previously undeclared anywhere,
-    # so `pip install -e ".[full]"` silently left Twitter/Reddit/Instagram
-    # broken with ImportError even with valid credentials configured.
+    # (stegstr/platform/adapters/*.py)
     "requests>=2.31.0",
     "tweepy>=4.14.0",      # twitter.py
     "praw>=7.7.0",         # reddit.py
     "ngrok>=1.0.0",        # instagram.py (optional public tunnel)
-    "flask>=3.0.0",        # stegstr/gui/web_app.py (panel local de credenciales/pruebas)
+    "flask>=3.0.0",        # stegstr/gui/web_app.py (panel local)
 ]
 dev = [
     "pytest>=7.4.0",

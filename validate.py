@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-Stegstr Exhaustive Validation Suite v2.1.5 — Fase 7.1 (Corregido)
+Stegstr Exhaustive Validation Suite v2.2.0
 
 Validates all components of the steganography system:
- - Roundtrip tests for all modes (GHOST, ARMOR, FORTRESS, HYBRID, PHANTOM)
- - Platform simulation survival tests
- - Encryption/decryption with Argon2id
- - Reed-Solomon ECC functionality
- - Sync marker detection
- - Auto-tune across all search depths
- - Capacity calculations (including dynamic ECC)
- - Edge cases (empty messages, oversized images, binary data)
- - Nostr client initialization and event lifecycle
- - PHANTOM mode anti-detection (LSB Matching)
- - Steganalysis report generation (Chi², RS, SPA)
- - Heuristic optimizer recommendations
- - Security hardening (zip-bomb protection, delta bounds, extraction limits)
- - ECC override propagation
- - Binary data roundtrip with encoding detection
- - Delta bounds synchronized with engine constants
+  - Roundtrip tests for all modes (GHOST, ARMOR, FORTRESS, HYBRID, PHANTOM)
+  - Platform simulation survival tests
+  - Encryption/decryption with Argon2id
+  - Reed-Solomon ECC functionality
+  - Sync marker detection
+  - Auto-tune across all search depths
+  - Capacity calculations (including dynamic ECC)
+  - Edge cases (empty messages, oversized images, binary data)
+  - Nostr client initialization and event lifecycle
+  - PHANTOM mode anti-detection (LSB Matching)
+  - Steganalysis report generation (Chi², RS, SPA)
+  - Heuristic optimizer recommendations
+  - Security hardening (zip-bomb protection, delta bounds, extraction limits)
+  - ECC override propagation
+  - Binary data roundtrip with encoding detection
+  - Delta bounds synchronized with engine constants
 
 Run: python validate.py
 """
@@ -42,7 +42,6 @@ from stegstr.platform.simulator import PlatformSimulator
 from stegstr.agent.optimizer import StegstrAgent
 from stegstr.analysis.steganalysis import StegAnalyzer
 
-
 def create_test_image(size: Tuple[int, int] = (512, 512), textured: bool = True) -> str:
     """Create a test image and return its path."""
     tmpdir = tempfile.mkdtemp()
@@ -56,7 +55,6 @@ def create_test_image(size: Tuple[int, int] = (512, 512), textured: bool = True)
     Image.fromarray(arr).save(path)
     return path
 
-
 class ValidationResult:
     def __init__(self, name: str, passed: bool, duration_ms: float, error: str = None, details: dict = None):
         self.name = name
@@ -64,7 +62,6 @@ class ValidationResult:
         self.duration_ms = duration_ms
         self.error = error
         self.details = details or {}
-
 
 class StegstrValidator:
     def __init__(self):
@@ -75,7 +72,7 @@ class StegstrValidator:
     def run_all(self):
         """Run all validation tests."""
         print("=" * 70)
-        print("Stegstr Exhaustive Validation Suite v2.1.5 — Fase 7.1 (Corregido)")
+        print("Stegstr Exhaustive Validation Suite v2.2.0")
         print("=" * 70)
 
         tests = [
@@ -122,13 +119,13 @@ class StegstrValidator:
                 test_func()
                 duration = (time.perf_counter() - start) * 1000
                 self.results.append(ValidationResult(name, True, duration))
-                print(f" ✅ {name:.<50} {duration:>8.1f}ms")
+                print(f"  ✅ {name:.<50} {duration:>8.1f}ms")
                 passed += 1
             except Exception as e:
                 duration = (time.perf_counter() - start) * 1000
                 self.results.append(ValidationResult(name, False, duration, error=str(e)))
-                print(f" ❌ {name:.<50} {duration:>8.1f}ms")
-                print(f"    Error: {e}")
+                print(f"  ❌ {name:.<50} {duration:>8.1f}ms")
+                print(f"     Error: {e}")
                 failed += 1
 
         print("\n" + "=" * 70)
@@ -141,7 +138,7 @@ class StegstrValidator:
             print("\nFailed tests details:")
             for r in self.results:
                 if not r.passed:
-                    print(f" • {r.name}: {r.error}")
+                    print(f"  • {r.name}: {r.error}")
 
         return failed == 0
 
@@ -494,7 +491,6 @@ class StegstrValidator:
         assert event.compute_id() == event_id
         assert len(client.relays) >= 3
 
-
 def pytest_raises(exc_type):
     class RaisesContext:
         def __enter__(self):
@@ -506,7 +502,6 @@ def pytest_raises(exc_type):
                 raise AssertionError(f"Expected {exc_type.__name__} but got {exc_type_actual.__name__}")
             return True
     return RaisesContext()
-
 
 if __name__ == "__main__":
     validator = StegstrValidator()
