@@ -5,6 +5,9 @@ Stegstr Widget Server v2.2.0
 Servidor Flask ligero dedicado al widget visual.
 Expone endpoints REST JSON que consume el frontend SPA (widget.html).
 
+Novedad v2.2.0: Configuración de credenciales desde la GUI.
+Las credenciales se guardan en memoria del servidor (no persistentes).
+
 Uso:
     python -m stegstr.gui.widget_server
     # o
@@ -22,6 +25,11 @@ Endpoints:
     POST /simulate      → Simular procesamiento de plataforma
     POST /benchmark     → Benchmark rápido por modo
     POST /optimize      → Auto-tune de parámetros
+    GET  /platform_status   → Estado de adaptadores (con credenciales GUI)
+    POST /publish           → Publicar en plataforma real
+    POST /publish_validate  → Publicar + validar E2E
+    GET  /config            → Leer credenciales guardadas
+    POST /config            → Guardar credenciales desde GUI
 """
 
 import os
@@ -29,8 +37,11 @@ import sys
 import time
 import tempfile
 import base64
+import hashlib
+import traceback
 from io import BytesIO
 from pathlib import Path
+from typing import Optional, Dict, Any
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -51,11 +62,27 @@ from stegstr.platform.simulator import PlatformSimulator
 from stegstr.platform.simulator_v2 import RealisticPlatformSimulator
 from stegstr.analysis.steganalysis import StegAnalyzer
 
+# ── Importar adaptadores de plataforma ──────────────────────────────
+try:
+    from stegstr.platform.adapters import (
+        TelegramAdapter, DiscordAdapter, ImgurAdapter,
+        RedditAdapter, TwitterAdapter, InstagramAdapter,
+        WhatsAppAdapter, NostrAdapter,
+    )
+    HAS_ADAPTERS = True
+except ImportError:
+    HAS_ADAPTERS = False
+    print("[WARN] No se pudieron importar los adaptadores de plataforma.")
+
 app = Flask(__name__, static_folder=".")
 CORS(app, resources={r"/api/*": {"origins": "*"}, r"/*": {"origins": "*"}})
 
 WIDGET_HTML = Path(__file__).parent / "widget.html"
 APP_VERSION = "2.2.0"
+
+# ── Credenciales en memoria (configurables desde GUI) ───────────────
+# Estructura: {"telegram": {"bot_token": "...", "chat_id": "..."}, ...}
+GUI_CREDENTIALS: Dict[str, Dict[str, str]] = {}
 
 # ── Helpers ──
 
@@ -86,11 +113,84 @@ def _cors_jsonify(data, status=200):
     resp.headers.add("Access-Control-Allow-Origin", "*")
     return resp
 
-# ── Routes ──
+def _file_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def _get_adapter_instance(platform: str):
+    """
+    Crea una instancia del adaptador usando credenciales de la GUI
+    si están disponibles, o fallback a variables de entorno.
+    """
+    creds = GUI_CREDENTIALS.get(platform, {})
+
+    if platform == "telegram":
+        return TelegramAdapter(
+            bot_token=creds.get("bot_token") or None,
+            chat_id=creds.get("chat_id") or None,
+        )
+    elif platform == "discord":
+        return DiscordAdapter(
+            webhook_url=creds.get("webhook_url") or None,
+        )
+    elif platform == "imgur":
+        return ImgurAdapter(
+            client_id=creds.get("client_id") or None,
+        )
+    elif platform == "reddit":
+        return RedditAdapter(
+            client_id=creds.get("client_id") or None,
+            client_secret=creds.get("client_secret") or None,
+            username=creds.get("username") or None,
+            password=creds.get("password") or None,
+        )
+    elif platform == "twitter":
+        return TwitterAdapter(
+            api_key=creds.get("api_key") or None,
+            api_secret=creds.get("api_secret") or None,
+            access_token=creds.get("access_token") or None,
+            access_secret=creds.get("access_secret") or None,
+        )
+    elif platform == "instagram":
+        return InstagramAdapter(
+            username=creds.get("username") or None,
+            password=creds.get("password") or None,
+        )
+    elif platform == "whatsapp":
+        return WhatsAppAdapter(
+            api_key=creds.get("api_key") or None,
+            phone_number=creds.get("phone_number") or None,
+        )
+    elif platform == "nostr":
+        return NostrAdapter(
+            private_key=creds.get("private_key") or None,
+            relay_urls=creds.get("relay_urls", "").split(",") if creds.get("relay_urls") else None,
+        )
+    else:
+        raise ValueError(f"Plataforma '{platform}' no soportada")
+
+
+def _check_adapter_configured(platform: str) -> tuple[bool, str]:
+    """Verifica si un adaptador está configurado usando credenciales GUI + env."""
+    if not HAS_ADAPTERS:
+        return False, "Adaptadores no importados"
+    try:
+        adapter = _get_adapter_instance(platform)
+        if hasattr(adapter, 'is_available'):
+            available = adapter.is_available()
+            return available, "Adaptador listo" if available else "Faltan credenciales"
+        # Fallback: intentar inicializar
+        if hasattr(adapter, '_get_auth_headers'):
+            adapter._get_auth_headers()
+        return True, "Adaptador listo"
+    except Exception as e:
+        return False, str(e)
+
+
+# ── Routes originales ──
 
 @app.route("/")
 def index():
-    """Serve the widget SPA."""
     if WIDGET_HTML.exists():
         return send_from_directory(WIDGET_HTML.parent, WIDGET_HTML.name)
     return "<h1>Stegstr Widget v2.2.0</h1><p>widget.html not found</p>", 404
@@ -122,7 +222,6 @@ def embed():
         cover_path = os.path.join(tmpdir, "cover.png")
         cover_img.save(cover_path, "PNG")
 
-        # Auto-tune
         if autotune and platform:
             engine = StegoEngine(password=password or None)
             tune = engine.auto_tune(cover_path, message, platform, search_depth="standard")
@@ -220,7 +319,6 @@ def capacity():
         engine = StegoEngine()
         cap = engine.get_capacity(cover_path, mode, platform=platform or None, ecc_bytes=ecc)
 
-        # Raw capacity (without ECC overhead)
         w, h = cover_img.size
         w = (w // 8) * 8
         h = (h // 8) * 8
@@ -264,10 +362,7 @@ def analyze():
         analyzer = StegAnalyzer()
         report = analyzer.compare(cover_path, stego_path)
 
-        return _cors_jsonify({
-            "success": True,
-            "report": report,
-        })
+        return _cors_jsonify({"success": True, "report": report})
     except Exception as e:
         return _cors_jsonify({"success": False, "error": str(e)}, 500)
 
@@ -289,11 +384,7 @@ def simulate():
         sim = RealisticPlatformSimulator()
         result = sim.simulate(platform, input_path, output_path)
 
-        return _cors_jsonify({
-            "success": True,
-            "transformations": result.get("transformations", []),
-            "platform": platform,
-        })
+        return _cors_jsonify({"success": True, "transformations": result.get("transformations", []), "platform": platform})
     except Exception as e:
         return _cors_jsonify({"success": False, "error": str(e)}, 500)
 
@@ -363,6 +454,228 @@ def optimize():
     except Exception as e:
         return _cors_jsonify({"success": False, "error": str(e)}, 500)
 
+
+# ════════════════════════════════════════════════════════════════════
+#  CONFIGURACIÓN DE CREDENCIALES DESDE GUI
+# ════════════════════════════════════════════════════════════════════
+
+@app.route("/config", methods=["GET"])
+def get_config():
+    """Devuelve las credenciales guardadas en memoria (sin valores sensibles)."""
+    masked = {}
+    for platform, creds in GUI_CREDENTIALS.items():
+        masked[platform] = {k: ("✓" if v else "✗") for k, v in creds.items()}
+    return _cors_jsonify({"success": True, "credentials": masked})
+
+@app.route("/config", methods=["POST"])
+def set_config():
+    """Guarda credenciales en memoria desde la GUI."""
+    global GUI_CREDENTIALS
+    data = request.get_json(force=True, silent=True) or {}
+    platform = data.get("platform", "").lower().strip()
+    creds = data.get("credentials", {})
+
+    if not platform:
+        return _cors_jsonify({"success": False, "error": "Falta plataforma"}, 400)
+
+    if platform not in GUI_CREDENTIALS:
+        GUI_CREDENTIALS[platform] = {}
+
+    # Guardar solo campos no vacíos
+    for key, value in creds.items():
+        if value and str(value).strip():
+            GUI_CREDENTIALS[platform][key] = str(value).strip()
+
+    return _cors_jsonify({
+        "success": True,
+        "platform": platform,
+        "saved_keys": list(GUI_CREDENTIALS[platform].keys()),
+    })
+
+@app.route("/config/clear", methods=["POST"])
+def clear_config():
+    """Limpia todas las credenciales guardadas en memoria."""
+    global GUI_CREDENTIALS
+    GUI_CREDENTIALS = {}
+    return _cors_jsonify({"success": True, "message": "Credenciales eliminadas"})
+
+
+# ════════════════════════════════════════════════════════════════════
+#  PUBLICACIÓN REAL
+# ════════════════════════════════════════════════════════════════════
+
+ADAPTER_MAP = {
+    "telegram": TelegramAdapter,
+    "discord": DiscordAdapter,
+    "imgur": ImgurAdapter,
+    "reddit": RedditAdapter,
+    "twitter": TwitterAdapter,
+    "instagram": InstagramAdapter,
+    "whatsapp": WhatsAppAdapter,
+    "nostr": NostrAdapter,
+}
+
+@app.route("/platform_status", methods=["GET"])
+def platform_status():
+    """Devuelve el estado de configuración de cada adaptador."""
+    if not HAS_ADAPTERS:
+        return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
+
+    status = {}
+    for name in ADAPTER_MAP.keys():
+        configured, desc = _check_adapter_configured(name)
+        status[name] = {
+            "configured": configured,
+            "description": desc,
+        }
+    return _cors_jsonify(status)
+
+@app.route("/publish", methods=["POST"])
+def publish():
+    """Publica una imagen en una plataforma real."""
+    if not HAS_ADAPTERS:
+        return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
+
+    try:
+        file = request.files.get("image")
+        platform = request.form.get("platform", "").lower().strip()
+        caption = request.form.get("caption", "")
+
+        if not file:
+            return _cors_jsonify({"error": "Falta imagen"}, 400)
+        if not platform:
+            return _cors_jsonify({"error": "Falta plataforma"}, 400)
+        if platform not in ADAPTER_MAP:
+            return _cors_jsonify({"error": f"Plataforma '{platform}' no soportada"}, 400)
+
+        img_data = file.read()
+        suffix = ".png" if file.filename.lower().endswith(".png") else ".jpg"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(img_data)
+            tmp_path = tmp.name
+
+        try:
+            adapter = _get_adapter_instance(platform)
+            result = adapter.upload(tmp_path)
+
+            # Construir URL según el adaptador
+            url = result if isinstance(result, str) else (result.get("url") if isinstance(result, dict) else "")
+
+            return _cors_jsonify({
+                "success": True,
+                "platform": platform,
+                "url": url or "",
+                "details": result if isinstance(result, dict) else {},
+            })
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+    except Exception as e:
+        traceback.print_exc()
+        return _cors_jsonify({"error": str(e)}, 500)
+
+@app.route("/publish_validate", methods=["POST"])
+def publish_validate():
+    """Publica, descarga de vuelta y valida E2E."""
+    if not HAS_ADAPTERS:
+        return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
+
+    try:
+        file = request.files.get("image")
+        platform = request.form.get("platform", "").lower().strip()
+        caption = request.form.get("caption", "")
+        mode_str = request.form.get("mode", "auto")
+
+        if not file:
+            return _cors_jsonify({"error": "Falta imagen"}, 400)
+        if not platform:
+            return _cors_jsonify({"error": "Falta plataforma"}, 400)
+        if platform not in ADAPTER_MAP:
+            return _cors_jsonify({"error": f"Plataforma '{platform}' no soportada"}, 400)
+
+        original_data = file.read()
+        original_hash = _file_hash(original_data)
+        original_size = len(original_data)
+        original_pil = Image.open(BytesIO(original_data))
+
+        suffix = ".png" if file.filename.lower().endswith(".png") else ".jpg"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(original_data)
+            tmp_path = tmp.name
+
+        try:
+            adapter = _get_adapter_instance(platform)
+            pub_result = adapter.upload(tmp_path)
+            url = pub_result if isinstance(pub_result, str) else (pub_result.get("url") if isinstance(pub_result, dict) else "")
+
+            if not url:
+                return _cors_jsonify({
+                    "success": False,
+                    "error": "La publicación no devolvió URL",
+                    "details": pub_result if isinstance(pub_result, dict) else {},
+                }, 500)
+
+            # Descargar
+            dl_path = os.path.join(tempfile.mkdtemp(), "downloaded.png")
+            if hasattr(adapter, 'download'):
+                adapter.download(url, dl_path)
+            else:
+                import requests
+                r = requests.get(url, timeout=60)
+                with open(dl_path, "wb") as f:
+                    f.write(r.content)
+
+            downloaded_data = open(dl_path, "rb").read()
+            downloaded_hash = _file_hash(downloaded_data)
+            downloaded_size = len(downloaded_data)
+            downloaded_pil = Image.open(BytesIO(downloaded_data))
+
+            # Extraer mensaje
+            engine = StegoEngine()
+            expected_mode = _mode_from_str(mode_str) if mode_str and mode_str != "auto" else None
+            extract_result = engine.extract(dl_path, expected_mode=expected_mode)
+            extracted_message = extract_result.get("message", "") if extract_result else ""
+
+            # PSNR
+            analyzer = StegAnalyzer()
+            report = analyzer.compare_images(original_pil, downloaded_pil)
+            psnr = report.get("psnr", 0.0)
+
+            has_message = bool(extracted_message and len(extracted_message.strip()) > 0
+                               and not extracted_message.startswith("\x00"))
+
+            e2e_result = {
+                "success": has_message,
+                "extracted_message": extracted_message if has_message else "No se pudo extraer mensaje legible",
+                "original_size": original_size,
+                "downloaded_size": downloaded_size,
+                "original_hash": original_hash,
+                "downloaded_hash": downloaded_hash,
+                "psnr": round(psnr, 2),
+                "url": url,
+            }
+
+            return _cors_jsonify({
+                "success": True,
+                "platform": platform,
+                "url": url,
+                "e2e": e2e_result,
+            })
+
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+    except Exception as e:
+        traceback.print_exc()
+        return _cors_jsonify({"error": str(e)}, 500)
+
+
 # ── Main ──
 
 def main():
@@ -372,6 +685,22 @@ def main():
     print(f"Serving widget from: {WIDGET_HTML}")
     print("Open http://127.0.0.1:8080 in your browser")
     print("Press Ctrl+C to stop")
+    print("\nEndpoints disponibles:")
+    print("  GET  /                  → Widget HTML")
+    print("  GET  /health            → Estado del backend")
+    print("  POST /embed             → Ocultar mensaje")
+    print("  POST /extract           → Extraer mensaje")
+    print("  POST /capacity          → Capacidad de imagen")
+    print("  POST /analyze           → Análisis estadístico")
+    print("  POST /simulate          → Simulación local")
+    print("  POST /benchmark         → Benchmark")
+    print("  POST /optimize          → Auto-tune")
+    print("  GET  /platform_status   → Estado de adaptadores")
+    print("  POST /publish           → Publicar en plataforma real")
+    print("  POST /publish_validate  → Publicar + validar E2E")
+    print("  GET  /config            → Leer credenciales GUI")
+    print("  POST /config            → Guardar credenciales GUI")
+    print("  POST /config/clear      → Limpiar credenciales GUI")
     print("=" * 60)
     app.run(host="127.0.0.1", port=8080, debug=False)
 

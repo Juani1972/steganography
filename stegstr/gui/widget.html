@@ -1,926 +1,1207 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stegstr Widget v2.2.0 — Explorador Visual de Esteganografía</title>
-    <style>
-        :root {
-            --bg: #0f1117;
-            --bg-elevated: #161922;
-            --bg-card: #1c1f2a;
-            --border: #2a2e3b;
-            --text: #e2e4e9;
-            --text-muted: #8b92a8;
-            --accent: #4f8cff;
-            --accent-hover: #6fa0ff;
-            --accent-dim: #2a4a8a;
-            --success: #4ade80;
-            --warning: #fbbf24;
-            --danger: #f87171;
-            --info: #60a5fa;
-            --radius: 12px;
-            --radius-sm: 8px;
-            --shadow: 0 4px 24px rgba(0,0,0,0.4);
-            --transition: 0.2s ease;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding-bottom: 20px; border-bottom: 1px solid var(--border);
-            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
-        }
-        .logo { display: flex; align-items: center; gap: 12px; }
-        .logo-icon {
-            width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: bold; color: white;
-        }
-        .logo h1 { font-size: 22px; font-weight: 700; }
-        .logo span { color: var(--text-muted); font-size: 13px; font-weight: 400; }
-        .status-badge {
-            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-            display: inline-flex; align-items: center; gap: 6px;
-        }
-        .status-online { background: rgba(74,222,128,0.15); color: var(--success); }
-        .status-offline { background: rgba(248,113,113,0.15); color: var(--danger); }
-        .status-demo { background: rgba(251,191,36,0.15); color: var(--warning); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stegstr Widget v2.2.0 — Explorador Visual de Esteganografía</title>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0b0f14; --surface: #111820; --surface-hover: #17202a;
+  --border: #1e2a35; --border-hover: #2a3a4a;
+  --text: #d8dee4; --text-dim: #7a8899; --text-bright: #e8eef4;
+  --accent: #4dabf7; --accent-glow: rgba(77,171,247,0.25);
+  --accent2: #51cf66; --accent2-glow: rgba(81,207,102,0.25);
+  --danger: #ff6b6b; --danger-glow: rgba(255,107,107,0.25);
+  --warning: #ffd43b; --warning-glow: rgba(255,212,59,0.25);
+  --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,0.4);
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', monospace;
+}
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; line-height: 1.6;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
-        /* Tabs */
-        .tabs { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
-        .tab {
-            padding: 10px 20px; border-radius: var(--radius-sm); cursor: pointer;
-            background: var(--bg-elevated); border: 1px solid var(--border);
-            color: var(--text-muted); font-weight: 500; transition: var(--transition);
-            user-select: none;
-        }
-        .tab:hover { color: var(--text); border-color: var(--accent-dim); }
-        .tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+/* ── Header ── */
+header { text-align: center; margin-bottom: 28px; }
+header h1 {
+  font-size: 2rem; font-weight: 700; color: var(--text-bright);
+  letter-spacing: -0.5px; display: flex; align-items: center;
+  justify-content: center; gap: 10px;
+}
+header h1 span { color: var(--accent); font-weight: 300; font-size: 1.1rem; }
+header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 
-        /* Cards & Grid */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-        .card {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
-        }
-        .card h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;
-                   color: var(--text-muted); margin-bottom: 16px; }
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 4px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--border); padding-bottom: 2px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-dim); padding: 10px 16px; cursor: pointer;
+  font-size: 0.85rem; font-weight: 500; white-space: nowrap;
+  transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+  background: linear-gradient(to top, var(--accent-glow), transparent);
+}
 
-        /* Drop Zone */
-        .drop-zone {
-            border: 2px dashed var(--border); border-radius: var(--radius);
-            padding: 40px 20px; text-align: center; cursor: pointer;
-            transition: var(--transition); position: relative; overflow: hidden;
-        }
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--accent); background: rgba(79,140,255,0.05);
-        }
-        .drop-zone .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
-        .drop-zone p { color: var(--text-muted); font-size: 14px; }
-        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-        .preview-img { max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 12px; }
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
 
-        /* Mode Selector */
-        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-        .mode-card {
-            padding: 16px 12px; border-radius: var(--radius-sm); border: 2px solid var(--border);
-            cursor: pointer; text-align: center; transition: var(--transition); background: var(--bg-elevated);
-        }
-        .mode-card:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
-        .mode-card.selected { border-color: var(--accent); background: rgba(79,140,255,0.1); }
-        .mode-card .mode-icon { font-size: 24px; margin-bottom: 8px; }
-        .mode-card .mode-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-        .mode-card .mode-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+/* ── Cards ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow); transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-hover); }
+.card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-bright); }
+.card h3 { font-size: 0.95rem; font-weight: 600; margin: 16px 0 8px; color: var(--text-bright); }
 
-        /* Form Controls */
-        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-muted); }
-        input[type="text"], input[type="password"], input[type="number"],
-        textarea, select {
-            width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
-            border: 1px solid var(--border); background: var(--bg-elevated);
-            color: var(--text); font-size: 14px; transition: var(--transition);
-        }
-        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
-        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
-        .input-group { margin-bottom: 16px; }
-        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        @media (max-width: 600px) { .input-row { grid-template-columns: 1fr; } }
+/* ── Layout ── */
+.row { display: flex; gap: 16px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 260px; }
+@media (max-width: 700px) { .row { flex-direction: column; } }
 
-        /* Sliders */
-        .slider-wrap { display: flex; align-items: center; gap: 12px; }
-        input[type="range"] {
-            flex: 1; -webkit-appearance: none; height: 6px; border-radius: 3px;
-            background: var(--border); outline: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-            background: var(--accent); cursor: pointer; border: 2px solid var(--bg);
-        }
-        .slider-value { min-width: 48px; text-align: right; font-weight: 600; color: var(--accent); }
+/* ── Form Elements ── */
+label { display: block; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 4px; font-weight: 500; }
+input[type="text"], input[type="number"], textarea, select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 12px; border-radius: 6px;
+  font-size: 0.9rem; outline: none; transition: all 0.2s;
+  font-family: var(--font);
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+textarea { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: 0.85rem; }
+select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a8899' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
 
-        /* Buttons */
-        .btn {
-            padding: 12px 24px; border-radius: var(--radius-sm); border: none;
-            font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--transition);
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
-        .btn-secondary:hover { border-color: var(--accent); }
-        .btn-danger { background: rgba(248,113,113,0.2); color: var(--danger); }
-        .btn-sm { padding: 8px 16px; font-size: 13px; }
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #0b0f14; border: none;
+  padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+.btn:active { transform: translateY(0); }
+.btn-success { background: var(--accent2); }
+.btn-success:hover { box-shadow: 0 4px 12px var(--accent2-glow); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { box-shadow: 0 4px 12px var(--danger-glow); }
+.btn-warning { background: var(--warning); color: #1a1a1a; }
+.btn-warning:hover { box-shadow: 0 4px 12px var(--warning-glow); }
+.btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--border-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-        /* Metrics */
-        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
-        .metric {
-            background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 14px;
-            text-align: center; border: 1px solid var(--border);
-        }
-        .metric-value { font-size: 22px; font-weight: 700; color: var(--accent); }
-        .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+/* ── Dropzone ── */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 32px 20px; text-align: center; color: var(--text-dim);
+  cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+  background: var(--bg);
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-glow);
+}
+.dropzone input { display: none; }
+.dropzone .icon { font-size: 2rem; margin-bottom: 8px; display: block; }
 
-        /* Results */
-        .result-box {
-            background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 16px;
-            border-left: 3px solid var(--accent); margin-top: 16px;
-        }
-        .result-box.error { border-left-color: var(--danger); }
-        .result-box.success { border-left-color: var(--success); }
-        .result-box pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; color: var(--text); }
-        .result-box .result-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
+/* ── Preview ── */
+.preview-img {
+  max-width: 100%; max-height: 280px; border-radius: 6px;
+  border: 1px solid var(--border); display: none; margin-top: 8px;
+  box-shadow: var(--shadow);
+}
 
-        /* Comparison */
-        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
-        .compare-item { text-align: center; }
-        .compare-item img { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-        .compare-item .label { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+/* ── Result Box ── */
+.result-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px; margin-top: 12px;
+  font-family: var(--mono); font-size: 0.82rem; white-space: pre-wrap;
+  max-height: 320px; overflow-y: auto; color: var(--text-dim);
+  line-height: 1.5;
+}
+.result-box::-webkit-scrollbar { width: 6px; }
+.result-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-        /* Progress & Loading */
-        .spinner {
-            width: 20px; height: 20px; border: 2px solid var(--border);
-            border-top-color: var(--accent); border-radius: 50%;
-            animation: spin 0.8s linear infinite; display: inline-block;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-overlay {
-            position: absolute; inset: 0; background: rgba(15,17,23,0.8);
-            display: flex; align-items: center; justify-content: center;
-            border-radius: var(--radius); z-index: 10;
-        }
+/* ── Metric Row ── */
+.metric { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.metric:last-child { border-bottom: none; }
+.metric .value { font-family: var(--mono); color: var(--accent); font-weight: 500; }
 
-        /* Detection Bars */
-        .bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-top: 6px; }
-        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
-        .bar-fill.low { background: var(--success); }
-        .bar-fill.medium { background: var(--warning); }
-        .bar-fill.high { background: var(--danger); }
+/* ── Status Badge ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 12px; font-size: 0.72rem;
+  font-weight: 600;
+}
+.status-ok { background: rgba(81,207,102,0.12); color: var(--accent2); }
+.status-err { background: rgba(255,107,107,0.12); color: var(--danger); }
+.status-warn { background: rgba(255,212,59,0.12); color: var(--warning); }
+.status-info { background: rgba(77,171,247,0.12); color: var(--accent); }
 
-        /* Platform tags */
-        .platform-tag {
-            display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
-            border-radius: 20px; font-size: 12px; font-weight: 500;
-            background: var(--bg-elevated); border: 1px solid var(--border);
-        }
-        .platform-tag.active { border-color: var(--accent); color: var(--accent); }
+/* ── Platform Card ── */
+.platform-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: border-color 0.2s;
+}
+.platform-card:hover { border-color: var(--border-hover); }
+.platform-card .platform-info { display: flex; align-items: center; gap: 10px; }
+.platform-card .platform-icon { font-size: 1.4rem; }
+.platform-card .platform-name { font-weight: 600; font-size: 0.9rem; color: var(--text-bright); }
+.platform-card .platform-desc { font-size: 0.75rem; color: var(--text-dim); }
 
-        /* Toast */
-        .toast {
-            position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
-            border-radius: var(--radius-sm); background: var(--bg-card);
-            border: 1px solid var(--border); box-shadow: var(--shadow);
-            transform: translateY(100px); opacity: 0; transition: all 0.3s ease;
-            z-index: 1000; max-width: 400px;
-        }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.error { border-color: var(--danger); }
-        .toast.success { border-color: var(--success); }
+/* ── Publish Steps ── */
+.publish-steps {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.publish-step {
+  flex: 1; text-align: center; padding: 10px 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 0.78rem; color: var(--text-dim);
+  transition: all 0.2s;
+}
+.publish-step.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.publish-step.done { border-color: var(--accent2); color: var(--accent2); background: var(--accent2-glow); }
+.publish-step .step-num {
+  display: block; font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;
+}
 
-        /* Footer */
-        footer { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
-        footer a { color: var(--accent); text-decoration: none; }
+/* ── URL Box ── */
+.url-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; font-family: var(--mono);
+  font-size: 0.78rem; word-break: break-all; color: var(--accent);
+  cursor: pointer; transition: all 0.2s;
+}
+.url-box:hover { background: var(--accent-glow); border-color: var(--accent); }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-    </style>
+/* ── E2E Result ── */
+.e2e-result {
+  margin-top: 12px; padding: 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg);
+}
+.e2e-success { border-color: var(--accent2) !important; }
+.e2e-fail { border-color: var(--danger) !important; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Progress Bar ── */
+.progress-bar {
+  width: 100%; height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden; margin-top: 8px;
+}
+.progress-bar .fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width 0.3s; width: 0%;
+}
+
+/* ── Compare Grid ── */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.compare-grid img { width: 100%; border-radius: 6px; border: 1px solid var(--border); }
+@media (max-width: 700px) { .compare-grid { grid-template-columns: 1fr; } }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 12px 18px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none; align-items: center; gap: 8px; z-index: 1000;
+  animation: slideIn 0.3s ease; font-size: 0.85rem;
+  max-width: 400px;
+}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── Footer ── */
+footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem; }
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <div class="logo-icon">S</div>
-                <div>
-                    <h1>Stegstr Widget <span>v2.2.0</span></h1>
-                </div>
-            </div>
-            <div>
-                <span id="backend-status" class="status-badge status-offline">
-                    <span class="spinner" style="width:10px;height:10px;border-width:1px;display:none;" id="status-spinner"></span>
-                    <span id="status-text">Sin conexión</span>
-                </span>
-            </div>
-        </header>
+<div class="container">
+  <header>
+    <h1>🔐 Stegstr Widget <span>v2.2.0</span></h1>
+    <p>Explorador visual de esteganografía LSB avanzada con publicación real a redes sociales</p>
+  </header>
 
-        <nav class="tabs">
-            <div class="tab active" data-tab="embed">🔒 Ocultar</div>
-            <div class="tab" data-tab="extract">🔓 Extraer</div>
-            <div class="tab" data-tab="analyze">🔍 Analizar</div>
-            <div class="tab" data-tab="capacity">📊 Capacidad</div>
-            <div class="tab" data-tab="benchmark">⚡ Benchmark</div>
-        </nav>
+  <nav class="tabs">
+    <button class="tab active" data-tab="embed">🔒 Ocultar</button>
+    <button class="tab" data-tab="extract">🔓 Extraer</button>
+    <button class="tab" data-tab="analyze">🔍 Analizar</button>
+    <button class="tab" data-tab="capacity">📊 Capacidad</button>
+    <button class="tab" data-tab="benchmark">⚡ Benchmark</button>
+    <button class="tab" data-tab="publish">📡 Publicar</button>
+    <button class="tab" data-tab="config">⚙️ Configurar</button>
+  </nav>
 
-        <!-- TAB: EMBED -->
-        <div id="tab-embed" class="tab-content active">
-            <div class="grid">
-                <div class="card">
-                    <h3>1. Imagen de portada</h3>
-                    <div class="drop-zone" id="embed-drop">
-                        <input type="file" id="embed-file" accept="image/png,image/jpeg,image/jpg">
-                        <div class="icon">📁</div>
-                        <p>Arrastra una imagen o haz clic para elegir<br><small>PNG o JPEG, máx 16.384×16.384 px</small></p>
-                        <img id="embed-preview" class="preview-img" style="display:none;">
-                    </div>
-                    <div class="metrics" id="embed-file-info" style="display:none;">
-                        <div class="metric"><div class="metric-value" id="info-width">-</div><div class="metric-label">Ancho</div></div>
-                        <div class="metric"><div class="metric-value" id="info-height">-</div><div class="metric-label">Alto</div></div>
-                        <div class="metric"><div class="metric-value" id="info-format">-</div><div class="metric-label">Formato</div></div>
-                    </div>
-                </div>
+  <!-- ═══════ EMBED ═══════ -->
+  <div class="panel active" id="embed">
+    <div class="card">
+      <h2>🔒 Ocultar mensaje en imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen portadora</label>
+          <div class="dropzone" id="embedDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen o haz clic para seleccionar</div>
+            <input type="file" id="embedFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="embedPreview">
 
-                <div class="card">
-                    <h3>2. Modo de esteganografía</h3>
-                    <div class="mode-grid">
-                        <div class="mode-card selected" data-mode="HYBRID">
-                            <div class="mode-icon">⚡</div>
-                            <div class="mode-name">HYBRID</div>
-                            <div class="mode-desc">Auto-selección según plataforma</div>
-                        </div>
-                        <div class="mode-card" data-mode="FORTRESS">
-                            <div class="mode-icon">🏰</div>
-                            <div class="mode-name">FORTRESS</div>
-                            <div class="mode-desc">Máxima robustez. Ideal WhatsApp/Instagram</div>
-                        </div>
-                        <div class="mode-card" data-mode="ARMOR">
-                            <div class="mode-icon">🛡️</div>
-                            <div class="mode-name">ARMOR</div>
-                            <div class="mode-desc">Equilibrio robustez/capacidad</div>
-                        </div>
-                        <div class="mode-card" data-mode="GHOST">
-                            <div class="mode-icon">👻</div>
-                            <div class="mode-name">GHOST</div>
-                            <div class="mode-desc">Máxima capacidad en PNG sin pérdida</div>
-                        </div>
-                        <div class="mode-card" data-mode="PHANTOM">
-                            <div class="mode-icon">👤</div>
-                            <div class="mode-name">PHANTOM</div>
-                            <div class="mode-desc">Anti-detección. Resiste Chi²/RS/SPA</div>
-                        </div>
-                    </div>
-                </div>
+          <label style="margin-top:12px">Mensaje</label>
+          <textarea id="embedMsg" placeholder="Escribe tu mensaje secreto..."></textarea>
 
-                <div class="card">
-                    <h3>3. Parámetros</h3>
-                    <div class="input-group">
-                        <label>Plataforma de destino</label>
-                        <select id="embed-platform">
-                            <option value="">— Ninguna (modo manual) —</option>
-                            <option value="whatsapp_standard">WhatsApp Standard (agresivo)</option>
-                            <option value="whatsapp_hd">WhatsApp HD</option>
-                            <option value="telegram_photo">Telegram Foto</option>
-                            <option value="telegram_file">Telegram Archivo (sin pérdida)</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="signal">Signal</option>
-                            <option value="linkedin">LinkedIn</option>
-                            <option value="reddit">Reddit</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Delta (intensidad de embedding)</label>
-                        <div class="slider-wrap">
-                            <input type="range" id="embed-delta" min="0.5" max="50" step="0.5" value="8">
-                            <span class="slider-value" id="embed-delta-val">8.0</span>
-                        </div>
-                        <small style="color:var(--text-muted)">FORTRESS: 8-15 · ARMOR: 2-8 · GHOST/PHANTOM: N/A</small>
-                    </div>
-                    <div class="input-group">
-                        <label>ECC (corrección de errores)</label>
-                        <select id="embed-ecc">
-                            <option value="0">0 bytes (sin ECC)</option>
-                            <option value="16">16 bytes</option>
-                            <option value="24">24 bytes</option>
-                            <option value="32">32 bytes</option>
-                            <option value="40">40 bytes</option>
-                            <option value="48" selected>48 bytes (recomendado ARMOR)</option>
-                            <option value="64">64 bytes</option>
-                            <option value="96">96 bytes (recomendado FORTRESS)</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label><input type="checkbox" id="embed-autotune" style="width:auto;margin-right:8px;"> Usar auto-tune (optimiza delta + ECC automáticamente)</label>
-                    </div>
-                </div>
+          <label style="margin-top:8px">Modo de estego</label>
+          <select id="embedMode">
+            <option value="HYBRID" selected>HYBRID (recomendado)</option>
+            <option value="ARMOR">ARMOR (máxima robustez)</option>
+            <option value="FORTRESS">FORTRESS (anti-detección)</option>
+            <option value="STANDARD">STANDARD (equilibrado)</option>
+            <option value="AGGRESSIVE">AGGRESSIVE (máxima capacidad)</option>
+          </select>
 
-                <div class="card">
-                    <h3>4. Mensaje y seguridad</h3>
-                    <div class="input-group">
-                        <label>Mensaje secreto</label>
-                        <textarea id="embed-message" placeholder="Escribe aquí el mensaje a ocultar..."></textarea>
-                        <small style="color:var(--text-muted)"><span id="msg-counter">0</span> bytes · Límite: 10MB comprimido / 50MB crudo</small>
-                    </div>
-                    <div class="input-group">
-                        <label>Contraseña (opcional pero recomendada)</label>
-                        <input type="password" id="embed-password" placeholder="AES-256-GCM + Argon2id">
-                    </div>
-                    <button class="btn btn-primary" id="btn-embed" style="width:100%;">
-                        <span class="spinner" style="display:none;" id="embed-spinner"></span>
-                        <span id="embed-btn-text">🔒 Ocultar mensaje</span>
-                    </button>
-                    <div id="embed-result" style="margin-top:16px;"></div>
-                </div>
-            </div>
+          <label style="margin-top:8px">Plataforma objetivo (para auto-tune)</label>
+          <select id="embedPlatform">
+            <option value="">Ninguna (sin simulación)</option>
+            <option value="telegram_photo">Telegram Foto</option>
+            <option value="telegram_file">Telegram Archivo</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+          </select>
 
-            <div class="grid" style="margin-top:16px;">
-                <div class="card">
-                    <h3>Resultado</h3>
-                    <div id="embed-output-preview" style="text-align:center;min-height:150px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
-                        La imagen stego aparecerá aquí
-                    </div>
-                    <div id="embed-metrics" class="metrics" style="display:none;">
-                        <div class="metric"><div class="metric-value" id="m-psnr">-</div><div class="metric-label">PSNR (dB)</div></div>
-                        <div class="metric"><div class="metric-value" id="m-ssim">-</div><div class="metric-label">SSIM</div></div>
-                        <div class="metric"><div class="metric-value" id="m-mode">-</div><div class="metric-label">Modo usado</div></div>
-                        <div class="metric"><div class="metric-value" id="m-delta">-</div><div class="metric-label">Delta</div></div>
-                        <div class="metric"><div class="metric-value" id="m-ecc">-</div><div class="metric-label">ECC</div></div>
-                        <div class="metric"><div class="metric-value" id="m-time">-</div><div class="metric-label">Tiempo</div></div>
-                    </div>
-                    <a id="embed-download" class="btn btn-secondary btn-sm" style="display:none;margin-top:12px;width:100%;">⬇️ Descargar imagen stego</a>
-                </div>
+          <label style="margin-top:8px">Contraseña (opcional)</label>
+          <input type="text" id="embedPassword" placeholder="Deja vacío para sin contraseña">
 
-                <div class="card">
-                    <h3>Simulación de plataforma</h3>
-                    <div class="input-group">
-                        <select id="sim-platform">
-                            <option value="">Selecciona plataforma para simular...</option>
-                            <option value="whatsapp_standard">WhatsApp Standard</option>
-                            <option value="whatsapp_hd">WhatsApp HD</option>
-                            <option value="telegram_photo">Telegram Foto</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="signal">Signal</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-secondary btn-sm" id="btn-simulate" style="width:100%;">🧪 Simular procesamiento</button>
-                    <div id="sim-result" style="margin-top:12px;"></div>
-                </div>
-            </div>
+          <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+            <label style="margin:0; display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" id="embedAutotune" style="width:auto">
+              Auto-tune para plataforma
+            </label>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="embedBtn">🚀 Ocultar</button>
+            <button class="btn btn-secondary" id="embedClear">Limpiar</button>
+          </div>
         </div>
-
-        <!-- TAB: EXTRACT -->
-        <div id="tab-extract" class="tab-content">
-            <div class="grid">
-                <div class="card">
-                    <h3>Imagen stego</h3>
-                    <div class="drop-zone" id="extract-drop">
-                        <input type="file" id="extract-file" accept="image/png,image/jpeg,image/jpg">
-                        <div class="icon">🔓</div>
-                        <p>Arrastra la imagen con el mensaje oculto</p>
-                        <img id="extract-preview" class="preview-img" style="display:none;">
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Configuración</h3>
-                    <div class="input-group">
-                        <label>Contraseña (si se usó al ocultar)</label>
-                        <input type="password" id="extract-password" placeholder="Dejar vacío si no hubo contraseña">
-                    </div>
-                    <div class="input-group">
-                        <label>Forzar modo (opcional)</label>
-                        <select id="extract-mode">
-                            <option value="">— Auto-detectar —</option>
-                            <option value="FORTRESS">FORTRESS</option>
-                            <option value="ARMOR">ARMOR</option>
-                            <option value="GHOST">GHOST</option>
-                            <option value="PHANTOM">PHANTOM</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="btn-extract" style="width:100%;">
-                        <span class="spinner" style="display:none;" id="extract-spinner"></span>
-                        <span id="extract-btn-text">🔓 Extraer mensaje</span>
-                    </button>
-                </div>
-                <div class="card" style="grid-column:1/-1;">
-                    <h3>Mensaje extraído</h3>
-                    <div id="extract-result" style="min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
-                        El mensaje aparecerá aquí
-                    </div>
-                </div>
-            </div>
+        <div class="col">
+          <label>Resultado</label>
+          <div class="result-box" id="embedResult">Esperando...</div>
+          <div id="embedDownload" style="margin-top:8px; display:none">
+            <a class="btn" id="embedLink" download="stego.png">⬇️ Descargar imagen stego</a>
+          </div>
         </div>
-
-        <!-- TAB: ANALYZE -->
-        <div id="tab-analyze" class="tab-content">
-            <div class="grid">
-                <div class="card">
-                    <h3>Imagen original (cover)</h3>
-                    <div class="drop-zone" id="analyze-cover-drop">
-                        <input type="file" id="analyze-cover-file" accept="image/png,image/jpeg">
-                        <div class="icon">📁</div>
-                        <p>Imagen sin mensaje oculto</p>
-                        <img id="analyze-cover-preview" class="preview-img" style="display:none;">
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Imagen sospechosa (stego)</h3>
-                    <div class="drop-zone" id="analyze-stego-drop">
-                        <input type="file" id="analyze-stego-file" accept="image/png,image/jpeg">
-                        <div class="icon">🔍</div>
-                        <p>Imagen con posible mensaje oculto</p>
-                        <img id="analyze-stego-preview" class="preview-img" style="display:none;">
-                    </div>
-                </div>
-                <div class="card" style="grid-column:1/-1;">
-                    <button class="btn btn-primary" id="btn-analyze" style="width:100%;">
-                        <span class="spinner" style="display:none;" id="analyze-spinner"></span>
-                        🔍 Analizar detectabilidad
-                    </button>
-                    <div id="analyze-result" style="margin-top:16px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: CAPACITY -->
-        <div id="tab-capacity" class="tab-content">
-            <div class="grid">
-                <div class="card">
-                    <h3>Imagen</h3>
-                    <div class="drop-zone" id="capacity-drop">
-                        <input type="file" id="capacity-file" accept="image/png,image/jpeg">
-                        <div class="icon">📊</div>
-                        <p>Arrastra una imagen para calcular capacidad</p>
-                        <img id="capacity-preview" class="preview-img" style="display:none;">
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Configuración</h3>
-                    <div class="input-group">
-                        <label>Modo</label>
-                        <select id="capacity-mode">
-                            <option value="FORTRESS">FORTRESS</option>
-                            <option value="ARMOR" selected>ARMOR</option>
-                            <option value="GHOST">GHOST</option>
-                            <option value="PHANTOM">PHANTOM</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Plataforma (afecta ECC)</label>
-                        <select id="capacity-platform">
-                            <option value="">— Ninguna —</option>
-                            <option value="whatsapp_standard">WhatsApp Standard</option>
-                            <option value="whatsapp_hd">WhatsApp HD</option>
-                            <option value="telegram_photo">Telegram Foto</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="twitter">Twitter / X</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="signal">Signal</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>ECC override</label>
-                        <select id="capacity-ecc">
-                            <option value="">— Por defecto —</option>
-                            <option value="0">0</option>
-                            <option value="16">16</option>
-                            <option value="32">32</option>
-                            <option value="48">48</option>
-                            <option value="64">64</option>
-                            <option value="96">96</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="btn-capacity" style="width:100%;">📊 Calcular capacidad</button>
-                </div>
-                <div class="card" style="grid-column:1/-1;">
-                    <h3>Resultados por modo</h3>
-                    <div id="capacity-result"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: BENCHMARK -->
-        <div id="tab-benchmark" class="tab-content">
-            <div class="card">
-                <h3>Benchmark rápido</h3>
-                <p style="color:var(--text-muted);margin-bottom:16px;">
-                    Compara los 5 modos en la imagen cargada. Mide capacidad, tiempo estimado y robustez simulada.
-                </p>
-                <div class="drop-zone" id="bench-drop">
-                    <input type="file" id="bench-file" accept="image/png,image/jpeg">
-                    <div class="icon">⚡</div>
-                    <p>Arrastra una imagen para el benchmark</p>
-                    <img id="bench-preview" class="preview-img" style="display:none;">
-                </div>
-                <div class="input-group" style="margin-top:16px;">
-                    <label>Mensaje de prueba</label>
-                    <input type="text" id="bench-message" value="Mensaje de prueba para benchmark" style="width:100%;">
-                </div>
-                <button class="btn btn-primary" id="btn-benchmark" style="width:100%;margin-top:12px;">
-                    <span class="spinner" style="display:none;" id="bench-spinner"></span>
-                    ⚡ Ejecutar benchmark
-                </button>
-                <div id="bench-result" style="margin-top:16px;"></div>
-            </div>
-        </div>
-
-        <footer>
-            Stegstr v2.2.0 — <a href="https://github.com/Juani1972/steganography" target="_blank">GitHub</a> —
-            Motor: 5 modos · AES-256-GCM · Argon2id · Reed-Solomon · Nostr · AI Agent<br>
-            <span style="color:var(--text-muted)">Este widget requiere el backend Flask. Ejecuta: <code>python -m stegstr.gui.web_app</code> o <code>python -m stegstr.gui.widget_server</code></span>
-        </footer>
+      </div>
     </div>
+  </div>
 
-    <div class="toast" id="toast"></div>
+  <!-- ═══════ EXTRACT ═══════ -->
+  <div class="panel" id="extract">
+    <div class="card">
+      <h2>🔓 Extraer mensaje de imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen stego</label>
+          <div class="dropzone" id="extractDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego o haz clic</div>
+            <input type="file" id="extractFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="extractPreview">
 
-    <script>
-    // ============================================================
-    // Stegstr Widget v2.2.0 — Frontend SPA
-    // ============================================================
-    const API_BASE = "http://127.0.0.1:8080";
-    let backendOnline = false;
-    let demoMode = false;
+          <label style="margin-top:12px">Modo esperado (opcional)</label>
+          <select id="extractMode">
+            <option value="">Auto-detectar</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="STANDARD">STANDARD</option>
+            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
 
-    // Estado
-    const state = {
-        embed: { file: null, mode: "HYBRID", platform: "", delta: 8, ecc: 48, autotune: false },
-        extract: { file: null, password: "", mode: "" },
-        analyze: { cover: null, stego: null },
-        capacity: { file: null, mode: "ARMOR", platform: "", ecc: "" },
-        benchmark: { file: null, message: "Mensaje de prueba para benchmark" }
+          <label style="margin-top:8px">Contraseña (si aplica)</label>
+          <input type="text" id="extractPassword" placeholder="Contraseña usada al ocultar">
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="extractBtn">🔍 Extraer</button>
+            <button class="btn btn-secondary" id="extractClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Mensaje extraído</label>
+          <div class="result-box" id="extractResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ANALYZE ═══════ -->
+  <div class="panel" id="analyze">
+    <div class="card">
+      <h2>🔍 Análisis de detectabilidad</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen original (cover)</label>
+          <div class="dropzone" id="analyzeDrop1">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen original</div>
+            <input type="file" id="analyzeFile1" accept="image/*">
+          </div>
+          <img class="preview-img" id="analyzePreview1">
+        </div>
+        <div class="col">
+          <label>Imagen con mensaje oculto (stego)</label>
+          <div class="dropzone" id="analyzeDrop2">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego</div>
+            <input type="file" id="analyzeFile2" accept="image/*">
+          </div>
+          <img class="preview-img" id="analyzePreview2">
+        </div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:8px">
+        <button class="btn btn-success" id="analyzeBtn">📊 Analizar</button>
+        <button class="btn btn-secondary" id="analyzeClear">Limpiar</button>
+      </div>
+      <div class="result-box" id="analyzeResult" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ═══════ CAPACITY ═══════ -->
+  <div class="panel" id="capacity">
+    <div class="card">
+      <h2>📊 Capacidad de la imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen portadora</label>
+          <div class="dropzone" id="capacityDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen para analizar</div>
+            <input type="file" id="capacityFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="capacityPreview">
+
+          <label style="margin-top:12px">Modo</label>
+          <select id="capacityMode">
+            <option value="ARMOR" selected>ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="STANDARD">STANDARD</option>
+            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <label style="margin-top:8px">Plataforma objetivo</label>
+          <select id="capacityPlatform">
+            <option value="">Ninguna</option>
+            <option value="telegram_photo">Telegram Foto</option>
+            <option value="telegram_file">Telegram Archivo</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+          </select>
+
+          <label style="margin-top:8px">ECC (bytes, opcional)</label>
+          <input type="number" id="capacityECC" placeholder="48" min="0" max="255">
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-success" id="capacityBtn">📊 Calcular</button>
+            <button class="btn btn-secondary" id="capacityClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultados</label>
+          <div class="result-box" id="capacityResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ BENCHMARK ═══════ -->
+  <div class="panel" id="benchmark">
+    <div class="card">
+      <h2>⚡ Benchmark por modo</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen de prueba</label>
+          <div class="dropzone" id="benchmarkDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen de prueba</div>
+            <input type="file" id="benchmarkFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="benchmarkPreview">
+
+          <label style="margin-top:12px">Mensaje de prueba</label>
+          <input type="text" id="benchmarkMsg" value="Mensaje de prueba para benchmark" style="margin-bottom:8px">
+
+          <label>Modo</label>
+          <select id="benchmarkMode">
+            <option value="ARMOR" selected>ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="STANDARD">STANDARD</option>
+            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-success" id="benchmarkBtn">⚡ Ejecutar</button>
+            <button class="btn btn-secondary" id="benchmarkClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultados</label>
+          <div class="result-box" id="benchmarkResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PUBLISH ═══════ -->
+  <div class="panel" id="publish">
+    <div class="card">
+      <h2>📡 Publicar en plataformas reales</h2>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:16px">
+        Sube tu imagen stego a plataformas reales usando los adaptadores configurados.
+        Requiere que las variables de entorno/API keys estén configuradas en el servidor.
+      </p>
+
+      <h3>🔌 Estado de adaptadores</h3>
+      <div id="platformStatus">
+        <div style="text-align:center; padding:20px; color:var(--text-dim)">
+          <span class="spinner"></span> Cargando estado...
+        </div>
+      </div>
+      <button class="btn btn-secondary" id="refreshStatus" style="margin:8px 0 20px">
+        🔄 Refrescar estado
+      </button>
+
+      <div class="publish-steps">
+        <div class="publish-step active" id="step1">
+          <span class="step-num">1</span>
+          Seleccionar imagen
+        </div>
+        <div class="publish-step" id="step2">
+          <span class="step-num">2</span>
+          Elegir plataforma
+        </div>
+        <div class="publish-step" id="step3">
+          <span class="step-num">3</span>
+          Publicar
+        </div>
+        <div class="publish-step" id="step4">
+          <span class="step-num">4</span>
+          Validar E2E
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Imagen stego a publicar</label>
+          <div class="dropzone" id="publishDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego o haz clic</div>
+            <input type="file" id="publishFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="publishPreview">
+
+          <label style="margin-top:12px">Plataforma</label>
+          <select id="publishPlatform">
+            <option value="">-- Selecciona plataforma --</option>
+            <option value="telegram">Telegram</option>
+            <option value="discord">Discord</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="nostr">Nostr</option>
+          </select>
+
+          <label style="margin-top:8px">Mensaje / Caption (opcional)</label>
+          <input type="text" id="publishCaption" placeholder="Caption para la publicación">
+
+          <label style="margin-top:8px">Modo de estego (para validación E2E)</label>
+          <select id="publishMode">
+            <option value="auto">Auto-detectar</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="STANDARD">STANDARD</option>
+            <option value="AGGRESSIVE">AGGRESSIVE</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="publishBtn">
+              <span id="publishSpinner" style="display:none"><span class="spinner"></span></span>
+              📡 Publicar
+            </button>
+            <button class="btn btn-warning" id="publishValidateBtn">
+              <span id="validateSpinner" style="display:none"><span class="spinner"></span></span>
+              ✅ Publicar + Validar E2E
+            </button>
+            <button class="btn btn-secondary" id="publishClear">Limpiar</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <label>Resultado de publicación</label>
+          <div class="result-box" id="publishResult">Esperando...</div>
+
+          <div id="publishUrlBox" style="margin-top:12px; display:none">
+            <label>URL de la publicación</label>
+            <div class="url-box" id="publishUrl" title="Haz clic para copiar"></div>
+          </div>
+
+          <div id="e2eResultBox" style="display:none">
+            <label style="margin-top:12px">Resultado validación E2E</label>
+            <div class="e2e-result" id="e2eResult"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- ═══════ CONFIG ═══════ -->
+  <div class="panel" id="config">
+    <div class="card">
+      <h2>⚙️ Configurar credenciales de plataformas</h2>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:16px">
+        Introduce las credenciales de cada plataforma para habilitar la publicación real.
+        Se guardan <strong>solo en memoria del servidor</strong> (no persistentes entre reinicios).
+        También puedes usar variables de entorno como alternativa.
+      </p>
+
+      <div id="configStatus" style="margin-bottom:16px"></div>
+
+      <div class="row">
+        <div class="col">
+          <h3>📱 Telegram</h3>
+          <label>Bot Token</label>
+          <input type="text" id="cfgTelegramToken" placeholder="123456:ABC-DEF...">
+          <label style="margin-top:8px">Chat ID</label>
+          <input type="text" id="cfgTelegramChat" placeholder="-1001234567890">
+        </div>
+        <div class="col">
+          <h3>💬 Discord</h3>
+          <label>Webhook URL</label>
+          <input type="text" id="cfgDiscordWebhook" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <div class="col">
+          <h3>🖼️ Imgur</h3>
+          <label>Client ID</label>
+          <input type="text" id="cfgImgurClientId" placeholder="abc123def456">
+        </div>
+        <div class="col">
+          <h3>🔴 Reddit</h3>
+          <label>Client ID</label>
+          <input type="text" id="cfgRedditClientId" placeholder="reddit_client_id">
+          <label style="margin-top:8px">Client Secret</label>
+          <input type="text" id="cfgRedditSecret" placeholder="reddit_client_secret">
+          <label style="margin-top:8px">Username</label>
+          <input type="text" id="cfgRedditUser" placeholder="u/username">
+          <label style="margin-top:8px">Password</label>
+          <input type="text" id="cfgRedditPass" placeholder="reddit_password">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <div class="col">
+          <h3>🐦 Twitter / X</h3>
+          <label>API Key</label>
+          <input type="text" id="cfgTwitterKey" placeholder="twitter_api_key">
+          <label style="margin-top:8px">API Secret</label>
+          <input type="text" id="cfgTwitterSecret" placeholder="twitter_api_secret">
+          <label style="margin-top:8px">Access Token</label>
+          <input type="text" id="cfgTwitterToken" placeholder="twitter_access_token">
+          <label style="margin-top:8px">Access Secret</label>
+          <input type="text" id="cfgTwitterAccessSecret" placeholder="twitter_access_secret">
+        </div>
+        <div class="col">
+          <h3>📷 Instagram</h3>
+          <label>Username</label>
+          <input type="text" id="cfgInstagramUser" placeholder="usuario_instagram">
+          <label style="margin-top:8px">Password</label>
+          <input type="text" id="cfgInstagramPass" placeholder="contraseña">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <div class="col">
+          <h3>💚 WhatsApp</h3>
+          <label>API Key</label>
+          <input type="text" id="cfgWhatsappKey" placeholder="whatsapp_api_key">
+          <label style="margin-top:8px">Phone Number</label>
+          <input type="text" id="cfgWhatsappPhone" placeholder="+34 600 000 000">
+        </div>
+        <div class="col">
+          <h3>⚡ Nostr</h3>
+          <label>Private Key (hex)</label>
+          <input type="text" id="cfgNostrKey" placeholder="nsec1... o hex">
+          <label style="margin-top:8px">Relay URLs (separados por coma)</label>
+          <input type="text" id="cfgNostrRelays" placeholder="wss://relay.damus.io, wss://relay.nostr.info">
+        </div>
+      </div>
+
+      <div style="margin-top:24px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn btn-success" id="configSave">
+          <span id="configSpinner" style="display:none"><span class="spinner"></span></span>
+          💾 Guardar todas las credenciales
+        </button>
+        <button class="btn btn-secondary" id="configLoad">🔄 Cargar estado actual</button>
+        <button class="btn btn-danger" id="configClear">🗑️ Limpiar todas</button>
+      </div>
+
+      <div class="result-box" id="configResult" style="margin-top:16px; display:none"></div>
+    </div>
+  </div>
+
+<footer>
+    Stegstr v2.2.0 — Widget visual para exploración de esteganografía LSB avanzada
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/**
+ * Stegstr Widget v2.2.0 — Frontend SPA
+ * Consume los endpoints REST del widget_server.py
+ */
+const API_BASE = "http://127.0.0.1:8080";
+let currentPubResult = null;
+
+// ── UI Helpers ──
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'flex';
+  const colors = {
+    error:   'var(--danger)',
+    success: 'var(--accent2)',
+    warning: 'var(--warning)',
+    info:    'var(--accent)'
+  };
+  t.style.borderColor = colors[type] || colors.info;
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === id);
+  });
+  if (id === 'publish') loadPlatformStatus();
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.tab));
+});
+
+// ── Dropzones ──
+
+function setupDropzone(dropId, fileId, previewId) {
+  const drop = document.getElementById(dropId);
+  const file = document.getElementById(fileId);
+  const preview = document.getElementById(previewId);
+  if (!drop || !file) return;
+
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      file.files = e.dataTransfer.files;
+      showPreview(file.files[0], preview);
+    }
+  });
+  file.addEventListener('change', () => {
+    if (file.files.length) showPreview(file.files[0], preview);
+  });
+}
+
+function showPreview(file, img) {
+  if (!img) return;
+  const reader = new FileReader();
+  reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
+  reader.readAsDataURL(file);
+}
+
+// Initialize dropzones
+setupDropzone('embedDrop',   'embedFile',   'embedPreview');
+setupDropzone('extractDrop', 'extractFile', 'extractPreview');
+setupDropzone('analyzeDrop1','analyzeFile1','analyzePreview1');
+setupDropzone('analyzeDrop2','analyzeFile2','analyzePreview2');
+setupDropzone('capacityDrop','capacityFile','capacityPreview');
+setupDropzone('benchmarkDrop','benchmarkFile','benchmarkPreview');
+setupDropzone('publishDrop', 'publishFile', 'publishPreview');
+
+// ── EMBED ──
+
+document.getElementById('embedBtn').addEventListener('click', async () => {
+  const file = document.getElementById('embedFile').files[0];
+  const msg = document.getElementById('embedMsg').value;
+  const mode = document.getElementById('embedMode').value;
+  const platform = document.getElementById('embedPlatform').value;
+  const password = document.getElementById('embedPassword').value;
+  const autotune = document.getElementById('embedAutotune').checked;
+
+  if (!file || !msg) return showToast('Falta imagen o mensaje', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('message', msg);
+  fd.append('mode', mode);
+  if (platform) fd.append('platform', platform);
+  if (password) fd.append('password', password);
+  fd.append('autotune', autotune ? 'true' : 'false');
+
+  const res = await fetch(API_BASE + '/embed', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('embedResult');
+  box.textContent = JSON.stringify(data, null, 2);
+
+  if (data.success && data.stego_url) {
+    const link = document.getElementById('embedLink');
+    link.href = data.stego_url;
+    document.getElementById('embedDownload').style.display = 'block';
+    showToast('Mensaje ocultado correctamente', 'success');
+  } else {
+    showToast(data.error || 'Error al ocultar', 'error');
+  }
+});
+
+document.getElementById('embedClear').addEventListener('click', () => {
+  document.getElementById('embedFile').value = '';
+  document.getElementById('embedPreview').style.display = 'none';
+  document.getElementById('embedMsg').value = '';
+  document.getElementById('embedResult').textContent = 'Esperando...';
+  document.getElementById('embedDownload').style.display = 'none';
+});
+
+// ── EXTRACT ──
+
+document.getElementById('extractBtn').addEventListener('click', async () => {
+  const file = document.getElementById('extractFile').files[0];
+  const mode = document.getElementById('extractMode').value;
+  const password = document.getElementById('extractPassword').value;
+  if (!file) return showToast('Falta imagen stego', 'error');
+
+  const fd = new FormData();
+  fd.append('stego', file);
+  if (mode) fd.append('mode', mode);
+  if (password) fd.append('password', password);
+
+  const res = await fetch(API_BASE + '/extract', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('extractResult');
+  box.textContent = data.success ? data.message : (data.error || 'Error');
+  showToast(data.success ? 'Mensaje extraído' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('extractClear').addEventListener('click', () => {
+  document.getElementById('extractFile').value = '';
+  document.getElementById('extractPreview').style.display = 'none';
+  document.getElementById('extractResult').textContent = 'Esperando...';
+});
+
+// ── ANALYZE ──
+
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  const f1 = document.getElementById('analyzeFile1').files[0];
+  const f2 = document.getElementById('analyzeFile2').files[0];
+  if (!f1 || !f2) return showToast('Faltan ambas imágenes', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', f1);
+  fd.append('stego', f2);
+
+  const res = await fetch(API_BASE + '/analyze', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('analyzeResult');
+  box.style.display = 'block';
+  box.textContent = JSON.stringify(data, null, 2);
+  showToast(data.success ? 'Análisis completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('analyzeClear').addEventListener('click', () => {
+  document.getElementById('analyzeFile1').value = '';
+  document.getElementById('analyzeFile2').value = '';
+  document.getElementById('analyzePreview1').style.display = 'none';
+  document.getElementById('analyzePreview2').style.display = 'none';
+  document.getElementById('analyzeResult').style.display = 'none';
+});
+
+// ── CAPACITY ──
+
+document.getElementById('capacityBtn').addEventListener('click', async () => {
+  const file = document.getElementById('capacityFile').files[0];
+  const mode = document.getElementById('capacityMode').value;
+  const platform = document.getElementById('capacityPlatform').value;
+  const ecc = document.getElementById('capacityECC').value;
+  if (!file) return showToast('Falta imagen', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('mode', mode);
+  if (platform) fd.append('platform', platform);
+  if (ecc) fd.append('ecc', ecc);
+
+  const res = await fetch(API_BASE + '/capacity', { method: 'POST', body: fd });
+  const data = await res.json();
+  document.getElementById('capacityResult').textContent = JSON.stringify(data, null, 2);
+  showToast(data.success ? 'Capacidad calculada' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('capacityClear').addEventListener('click', () => {
+  document.getElementById('capacityFile').value = '';
+  document.getElementById('capacityPreview').style.display = 'none';
+  document.getElementById('capacityResult').textContent = 'Esperando...';
+});
+
+// ── BENCHMARK ──
+
+document.getElementById('benchmarkBtn').addEventListener('click', async () => {
+  const file = document.getElementById('benchmarkFile').files[0];
+  const msg = document.getElementById('benchmarkMsg').value;
+  const mode = document.getElementById('benchmarkMode').value;
+  if (!file) return showToast('Falta imagen', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('message', msg);
+  fd.append('mode', mode);
+
+  const res = await fetch(API_BASE + '/benchmark', { method: 'POST', body: fd });
+  const data = await res.json();
+  document.getElementById('benchmarkResult').textContent = JSON.stringify(data, null, 2);
+  showToast(data.success ? 'Benchmark completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('benchmarkClear').addEventListener('click', () => {
+  document.getElementById('benchmarkFile').value = '';
+  document.getElementById('benchmarkPreview').style.display = 'none';
+  document.getElementById('benchmarkResult').textContent = 'Esperando...';
+});
+
+// ── PUBLISH ──
+
+function setSteps(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+async function loadPlatformStatus() {
+  const box = document.getElementById('platformStatus');
+  box.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim)"><span class="spinner"></span> Cargando...</div>';
+  try {
+    const res = await fetch(API_BASE + '/platform_status');
+    const data = await res.json();
+    if (data.error) {
+      box.innerHTML = '<div style="color:var(--danger); padding:12px">' + data.error + '</div>';
+      return;
+    }
+    let html = '';
+    const icons = {
+      telegram: '📱', discord: '💬', imgur: '🖼️', reddit: '🔴',
+      twitter: '🐦', instagram: '📷', whatsapp: '💚', nostr: '⚡'
     };
-
-    // Utilidades
-    function $(sel) { return document.querySelector(sel); }
-    function $$(sel) { return document.querySelectorAll(sel); }
-    function showToast(msg, type="info") {
-        const t = $("#toast");
-        t.textContent = msg;
-        t.className = "toast show " + type;
-        setTimeout(() => t.classList.remove("show"), 4000);
+    for (const [name, info] of Object.entries(data)) {
+      const ok = info.configured;
+      html += `
+        <div class="platform-card">
+          <div class="platform-info">
+            <span class="platform-icon">${icons[name] || '🌐'}</span>
+            <div>
+              <div class="platform-name">${name.charAt(0).toUpperCase() + name.slice(1)}</div>
+              <div class="platform-desc">${info.description || ''}</div>
+            </div>
+          </div>
+          <span class="status-badge ${ok ? 'status-ok' : 'status-err'}">
+            ${ok ? '✅ Configurado' : '❌ No configurado'}
+          </span>
+        </div>`;
     }
-    function formatBytes(b) {
-        if (b === 0) return "0 B";
-        const k = 1024, sizes = ["B","KB","MB","GB"];
-        const i = Math.floor(Math.log(b) / Math.log(k));
-        return parseFloat((b / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-    }
-    function setLoading(btn, spinner, text, loading) {
-        btn.disabled = loading;
-        spinner.style.display = loading ? "inline-block" : "none";
-        text.style.opacity = loading ? "0.5" : "1";
-    }
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = '<div style="color:var(--danger); padding:12px">Error cargando estado: ' + e.message + '</div>';
+  }
+}
+document.getElementById('refreshStatus').addEventListener('click', loadPlatformStatus);
 
-    // Backend detection
-    async function checkBackend() {
-        const badge = $("#backend-status");
-        const spinner = $("#status-spinner");
-        const text = $("#status-text");
-        spinner.style.display = "inline-block";
-        try {
-            const res = await fetch(API_BASE + "/health", { method: "GET", mode: "cors", signal: AbortSignal.timeout(3000) });
-            if (res.ok) {
-                const data = await res.json();
-                backendOnline = true;
-                demoMode = false;
-                badge.className = "status-badge status-online";
-                text.textContent = "Backend online (v" + (data.version || "?") + ")";
-            } else {
-                throw new Error("HTTP " + res.status);
-            }
-        } catch (e) {
-            backendOnline = false;
-            demoMode = true;
-            badge.className = "status-badge status-demo";
-            text.textContent = "Demo offline (sin backend)";
-        }
-        spinner.style.display = "none";
-    }
+function updatePublishSteps() {
+  const file = document.getElementById('publishFile').files[0];
+  const platform = document.getElementById('publishPlatform').value;
+  let step = 1;
+  if (file) step = 2;
+  if (file && platform) step = 3;
+  if (currentPubResult && currentPubResult.url) step = 4;
+  setSteps(step);
+}
+document.getElementById('publishFile').addEventListener('change', updatePublishSteps);
+document.getElementById('publishPlatform').addEventListener('change', updatePublishSteps);
 
-    // Tabs
-    $$(".tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-            $$(".tab").forEach(t => t.classList.remove("active"));
-            $$(".tab-content").forEach(c => c.classList.remove("active"));
-            tab.classList.add("active");
-            $("#tab-" + tab.dataset.tab).classList.add("active");
-        });
-    });
+async function doPublish(validate = false) {
+  const file = document.getElementById('publishFile').files[0];
+  const platform = document.getElementById('publishPlatform').value;
+  const caption = document.getElementById('publishCaption').value;
+  const mode = document.getElementById('publishMode').value;
+  if (!file) return showToast('Selecciona una imagen stego', 'error');
+  if (!platform) return showToast('Selecciona una plataforma', 'error');
 
-    // Mode selector
-    $$(".mode-card").forEach(card => {
-        card.addEventListener("click", () => {
-            $$(".mode-card").forEach(c => c.classList.remove("selected"));
-            card.classList.add("selected");
-            state.embed.mode = card.dataset.mode;
-            // Auto-adjust delta based on mode
-            const deltaSlider = $("#embed-delta");
-            const deltaVal = $("#embed-delta-val");
-            if (state.embed.mode === "FORTRESS") { deltaSlider.value = 8; }
-            else if (state.embed.mode === "ARMOR") { deltaSlider.value = 4; }
-            else if (state.embed.mode === "HYBRID") { deltaSlider.value = 8; }
-            else { deltaSlider.value = 0.5; }
-            deltaVal.textContent = parseFloat(deltaSlider.value).toFixed(1);
-            state.embed.delta = parseFloat(deltaSlider.value);
-        });
-    });
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('platform', platform);
+  if (caption) fd.append('caption', caption);
+  if (validate) fd.append('mode', mode);
 
-    // Delta slider
-    $("#embed-delta").addEventListener("input", e => {
-        $("#embed-delta-val").textContent = parseFloat(e.target.value).toFixed(1);
-        state.embed.delta = parseFloat(e.target.value);
-    });
+  const btnId = validate ? 'publishValidateBtn' : 'publishBtn';
+  const spinId = validate ? 'validateSpinner' : 'publishSpinner';
+  document.getElementById(spinId).style.display = 'inline-block';
+  document.getElementById(btnId).disabled = true;
 
-    // Message counter
-    $("#embed-message").addEventListener("input", e => {
-        const bytes = new Blob([e.target.value]).size;
-        $("#msg-counter").textContent = bytes;
-        if (bytes > 50 * 1024 * 1024) {
-            $("#msg-counter").style.color = "var(--danger)";
-        } else if (bytes > 10 * 1024 * 1024) {
-            $("#msg-counter").style.color = "var(--warning)";
-        } else {
-            $("#msg-counter").style.color = "var(--success)";
-        }
-    });
+  try {
+    const endpoint = validate ? '/publish_validate' : '/publish';
+    const res = await fetch(API_BASE + endpoint, { method: 'POST', body: fd });
+    const data = await res.json();
 
-    // File drop handlers
-    function setupDrop(dropId, fileId, previewId, infoId, stateKey) {
-        const drop = $(dropId), file = $(fileId), preview = $(previewId);
-        const info = infoId ? $(infoId) : null;
-        ["dragenter","dragover"].forEach(evt => {
-            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add("dragover"); });
-        });
-        ["dragleave","drop"].forEach(evt => {
-            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove("dragover"); });
-        });
-        drop.addEventListener("drop", e => {
-            const f = e.dataTransfer.files[0];
-            if (f) handleFile(f, preview, info, stateKey);
-        });
-        file.addEventListener("change", e => {
-            const f = e.target.files[0];
-            if (f) handleFile(f, preview, info, stateKey);
-        });
-    }
-    function handleFile(file, preview, info, stateKey) {
-        if (!file.type.startsWith("image/")) {
-            showToast("Solo se aceptan imágenes PNG/JPEG", "error");
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = e => {
-            preview.src = e.target.result;
-            preview.style.display = "block";
-            state[stateKey].file = file;
-        };
-        reader.readAsDataURL(file);
-        if (info) {
-            const img = new Image();
-            img.onload = () => {
-                $("#info-width").textContent = img.width + " px";
-                $("#info-height").textContent = img.height + " px";
-                $("#info-format").textContent = file.type.replace("image/","").toUpperCase();
-                info.style.display = "grid";
-            };
-            img.src = URL.createObjectURL(file);
-        }
-    }
-    setupDrop("#embed-drop", "#embed-file", "#embed-preview", "#embed-file-info", "embed");
-    setupDrop("#extract-drop", "#extract-file", "#extract-preview", null, "extract");
-    setupDrop("#analyze-cover-drop", "#analyze-cover-file", "#analyze-cover-preview", null, "analyze");
-    setupDrop("#analyze-stego-drop", "#analyze-stego-file", "#analyze-stego-preview", null, "analyze");
-    setupDrop("#capacity-drop", "#capacity-file", "#capacity-preview", null, "capacity");
-    setupDrop("#bench-drop", "#bench-file", "#bench-preview", null, "benchmark");
+    document.getElementById('publishResult').textContent = JSON.stringify(data, null, 2);
 
-    // API calls
-    async function apiCall(endpoint, formData) {
-        if (!backendOnline) {
-            showToast("Backend no disponible. Ejecuta: python -m stegstr.gui.web_app", "error");
-            return null;
-        }
-        try {
-            const res = await fetch(API_BASE + endpoint, {
-                method: "POST", body: formData, mode: "cors"
-            });
-            if (!res.ok) {
-                const err = await res.text();
-                throw new Error(err || "HTTP " + res.status);
-            }
-            return await res.json();
-        } catch (e) {
-            showToast("Error de conexión: " + e.message, "error");
-            return null;
-        }
+    if (data.url) {
+      currentPubResult = data;
+      const urlBox = document.getElementById('publishUrl');
+      urlBox.textContent = data.url;
+      urlBox.onclick = () => { navigator.clipboard.writeText(data.url); showToast('URL copiada'); };
+      document.getElementById('publishUrlBox').style.display = 'block';
+      showToast('Publicado correctamente', 'success');
+    } else if (data.error) {
+      showToast(data.error, 'error');
     }
 
-    // EMBED
-    $("#btn-embed").addEventListener("click", async () => {
-        const file = state.embed.file;
-        const msg = $("#embed-message").value;
-        if (!file) { showToast("Selecciona una imagen de portada", "error"); return; }
-        if (!msg) { showToast("Escribe un mensaje", "error"); return; }
+    if (validate && data.e2e) {
+      const e2e = data.e2e;
+      const box = document.getElementById('e2eResult');
+      const success = e2e.success;
+      box.className = 'e2e-result ' + (success ? 'e2e-success' : 'e2e-fail');
+      box.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+          <span class="status-badge ${success ? 'status-ok' : 'status-err'}">
+            ${success ? '✅ E2E Exitoso' : '❌ E2E Fallido'}
+          </span>
+        </div>
+        <div class="metric"><span>Mensaje extraído:</span><span class="value">${e2e.extracted_message || 'N/A'}</span></div>
+        <div class="metric"><span>Tamaño original:</span><span class="value">${e2e.original_size || 'N/A'}</span></div>
+        <div class="metric"><span>Tamaño descargado:</span><span class="value">${e2e.downloaded_size || 'N/A'}</span></div>
+        <div class="metric"><span>PSNR:</span><span class="value">${e2e.psnr || 'N/A'}</span></div>
+        <div class="metric"><span>Hash original:</span><span class="value" style="font-size:0.7rem">${e2e.original_hash || 'N/A'}</span></div>
+        <div class="metric"><span>Hash descargado:</span><span class="value" style="font-size:0.7rem">${e2e.downloaded_hash || 'N/A'}</span></div>
+      `;
+      document.getElementById('e2eResultBox').style.display = 'block';
+      showToast(success ? 'Validación E2E exitosa' : 'Validación E2E fallida', success ? 'success' : 'error');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    document.getElementById(spinId).style.display = 'none';
+    document.getElementById(btnId).disabled = false;
+    updatePublishSteps();
+  }
+}
 
-        const btn = $("#btn-embed"), spinner = $("#embed-spinner"), text = $("#embed-btn-text");
-        setLoading(btn, spinner, text, true);
+document.getElementById('publishBtn').addEventListener('click', () => doPublish(false));
+document.getElementById('publishValidateBtn').addEventListener('click', () => doPublish(true));
+document.getElementById('publishClear').addEventListener('click', () => {
+  document.getElementById('publishFile').value = '';
+  document.getElementById('publishPreview').style.display = 'none';
+  document.getElementById('publishPlatform').value = '';
+  document.getElementById('publishCaption').value = '';
+  document.getElementById('publishResult').textContent = 'Esperando...';
+  document.getElementById('publishUrlBox').style.display = 'none';
+  document.getElementById('e2eResultBox').style.display = 'none';
+  currentPubResult = null;
+  setSteps(1);
+});
 
-        const fd = new FormData();
-        fd.append("cover", file);
-        fd.append("message", msg);
-        fd.append("mode", state.embed.mode);
-        fd.append("platform", $("#embed-platform").value);
-        fd.append("delta", state.embed.delta);
-        fd.append("ecc", $("#embed-ecc").value);
-        fd.append("password", $("#embed-password").value);
-        fd.append("autotune", $("#embed-autotune").checked ? "true" : "false");
 
-        const data = await apiCall("/embed", fd);
-        setLoading(btn, spinner, text, false);
+// ── CONFIG ──
 
-        if (data && data.success) {
-            $("#embed-output-preview").innerHTML = `<img src="${data.stego_url}" style="max-width:100%;border-radius:8px;">`;
-            $("#embed-metrics").style.display = "grid";
-            $("#m-psnr").textContent = (data.quality_metrics && data.quality_metrics.psnr_db) ? data.quality_metrics.psnr_db.toFixed(1) : "N/A";
-            $("#m-ssim").textContent = (data.quality_metrics && data.quality_metrics.ssim) ? data.quality_metrics.ssim.toFixed(3) : "N/A";
-            $("#m-mode").textContent = data.mode;
-            $("#m-delta").textContent = data.delta_used;
-            $("#m-ecc").textContent = data.ecc_used;
-            $("#m-time").textContent = (data.time_ms / 1000).toFixed(2) + "s";
-            $("#embed-download").href = data.stego_url;
-            $("#embed-download").style.display = "block";
-            $("#embed-download").download = "stego_" + data.mode.toLowerCase() + ".png";
-            showToast("✅ Mensaje ocultado correctamente", "success");
-        } else {
-            $("#embed-result").innerHTML = `<div class="result-box error"><div class="result-title">Error</div><pre>${(data && data.error) || "Respuesta inválida del servidor"}</pre></div>`;
-        }
-    });
+async function savePlatformConfig(platform, credentials) {
+  const res = await fetch(API_BASE + '/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform, credentials })
+  });
+  return await res.json();
+}
 
-    // SIMULATE
-    $("#btn-simulate").addEventListener("click", async () => {
-        const platform = $("#sim-platform").value;
-        if (!platform) { showToast("Selecciona una plataforma", "error"); return; }
-        if (!state.embed.file) { showToast("Primero oculta un mensaje", "error"); return; }
+document.getElementById('configSave').addEventListener('click', async () => {
+  const spin = document.getElementById('configSpinner');
+  spin.style.display = 'inline-block';
+  document.getElementById('configSave').disabled = true;
 
-        const fd = new FormData();
-        fd.append("image", state.embed.file);
-        fd.append("platform", platform);
-        const data = await apiCall("/simulate", fd);
-        if (data && data.success) {
-            let html = `<div class="result-box success"><div class="result-title">Simulación: ${platform}</div>`;
-            html += `<pre>Transformaciones: ${(data.transformations || []).join(", ")}</pre>`;
-            if (data.survived) html += `<p style="color:var(--success)">✅ Mensaje sobrevive</p>`;
-            else html += `<p style="color:var(--danger)">❌ Mensaje NO sobrevive (BER: ${data.ber || "N/A"})</p>`;
-            html += `</div>`;
-            $("#sim-result").innerHTML = html;
-        }
-    });
+  const platforms = [
+    {
+      name: 'telegram',
+      creds: {
+        bot_token: document.getElementById('cfgTelegramToken').value,
+        chat_id: document.getElementById('cfgTelegramChat').value,
+      }
+    },
+    {
+      name: 'discord',
+      creds: {
+        webhook_url: document.getElementById('cfgDiscordWebhook').value,
+      }
+    },
+    {
+      name: 'imgur',
+      creds: {
+        client_id: document.getElementById('cfgImgurClientId').value,
+      }
+    },
+    {
+      name: 'reddit',
+      creds: {
+        client_id: document.getElementById('cfgRedditClientId').value,
+        client_secret: document.getElementById('cfgRedditSecret').value,
+        username: document.getElementById('cfgRedditUser').value,
+        password: document.getElementById('cfgRedditPass').value,
+      }
+    },
+    {
+      name: 'twitter',
+      creds: {
+        api_key: document.getElementById('cfgTwitterKey').value,
+        api_secret: document.getElementById('cfgTwitterSecret').value,
+        access_token: document.getElementById('cfgTwitterToken').value,
+        access_secret: document.getElementById('cfgTwitterAccessSecret').value,
+      }
+    },
+    {
+      name: 'instagram',
+      creds: {
+        username: document.getElementById('cfgInstagramUser').value,
+        password: document.getElementById('cfgInstagramPass').value,
+      }
+    },
+    {
+      name: 'whatsapp',
+      creds: {
+        api_key: document.getElementById('cfgWhatsappKey').value,
+        phone_number: document.getElementById('cfgWhatsappPhone').value,
+      }
+    },
+    {
+      name: 'nostr',
+      creds: {
+        private_key: document.getElementById('cfgNostrKey').value,
+        relay_urls: document.getElementById('cfgNostrRelays').value,
+      }
+    },
+  ];
 
-    // EXTRACT
-    $("#btn-extract").addEventListener("click", async () => {
-        const file = state.extract.file;
-        if (!file) { showToast("Selecciona una imagen stego", "error"); return; }
+  const results = [];
+  for (const p of platforms) {
+    const hasAny = Object.values(p.creds).some(v => v && v.trim());
+    if (hasAny) {
+      const r = await savePlatformConfig(p.name, p.creds);
+      results.push({ platform: p.name, success: r.success, error: r.error });
+    }
+  }
 
-        const btn = $("#btn-extract"), spinner = $("#extract-spinner"), text = $("#extract-btn-text");
-        setLoading(btn, spinner, text, true);
+  const box = document.getElementById('configResult');
+  box.style.display = 'block';
+  box.textContent = JSON.stringify({ saved: results.length, results }, null, 2);
+  showToast(results.length > 0 ? `${results.length} plataformas configuradas` : 'Nada que guardar', results.length > 0 ? 'success' : 'warning');
 
-        const fd = new FormData();
-        fd.append("stego", file);
-        fd.append("password", $("#extract-password").value);
-        fd.append("mode", $("#extract-mode").value);
+  spin.style.display = 'none';
+  document.getElementById('configSave').disabled = false;
+  loadConfigStatus();
+});
 
-        const data = await apiCall("/extract", fd);
-        setLoading(btn, spinner, text, false);
+document.getElementById('configLoad').addEventListener('click', loadConfigStatus);
 
-        if (data && data.success && data.message) {
-            $("#extract-result").innerHTML = `<div class="result-box success"><div class="result-title">✅ Mensaje extraído (${data.mode || "auto"})</div><pre style="white-space:pre-wrap;word-break:break-word;">${data.message}</pre><small style="color:var(--text-muted)">Encoding: ${data.encoding || "utf-8"} · Delta usado: ${data.delta_used || "auto"}</small></div>`;
-        } else {
-            $("#extract-result").innerHTML = `<div class="result-box error"><div class="result-title">❌ No se encontró mensaje</div><pre>${(data && data.error) || "La imagen no contiene un mensaje oculto válido, o la contraseña/modo es incorrecto."}</pre></div>`;
-        }
-    });
+async function loadConfigStatus() {
+  try {
+    const res = await fetch(API_BASE + '/config');
+    const data = await res.json();
+    const box = document.getElementById('configStatus');
+    if (data.success && data.credentials) {
+      const platforms = Object.keys(data.credentials);
+      if (platforms.length === 0) {
+        box.innerHTML = '<span class="status-badge status-warn">⚠️ Sin credenciales configuradas</span>';
+      } else {
+        box.innerHTML = '<span class="status-badge status-ok">✅ ' + platforms.length + ' plataforma(s) configurada(s): ' + platforms.join(', ') + '</span>';
+      }
+    }
+  } catch (e) {
+    document.getElementById('configStatus').innerHTML = '<span class="status-badge status-err">❌ Error cargando configuración</span>';
+  }
+}
 
-    // ANALYZE
-    $("#btn-analyze").addEventListener("click", async () => {
-        if (!state.analyze.cover || !state.analyze.stego) {
-            showToast("Necesitas ambas imágenes (cover + stego)", "error"); return;
-        }
-        const spinner = $("#analyze-spinner");
-        spinner.style.display = "inline-block";
+document.getElementById('configClear').addEventListener('click', async () => {
+  const res = await fetch(API_BASE + '/config/clear', { method: 'POST' });
+  const data = await res.json();
+  showToast(data.message || 'Credenciales limpiadas', 'success');
+  loadConfigStatus();
+  // Limpiar inputs
+  document.querySelectorAll('#config input').forEach(i => i.value = '');
+});
 
-        const fd = new FormData();
-        fd.append("cover", state.analyze.cover);
-        fd.append("stego", state.analyze.stego);
 
-        const data = await apiCall("/analyze", fd);
-        spinner.style.display = "none";
-
-        if (data && data.success) {
-            const r = data.report;
-            let html = `<div class="result-box"><div class="result-title">📊 Análisis de detectabilidad</div>`;
-            html += `<div class="metrics" style="margin-top:12px;">`;
-            html += `<div class="metric"><div class="metric-value">${(r.chi2_p_value || 0).toFixed(4)}</div><div class="metric-label">Chi² p-value</div></div>`;
-            html += `<div class="metric"><div class="metric-value">${(r.rs_rate || 0).toFixed(4)}</div><div class="metric-label">RS rate</div></div>`;
-            html += `<div class="metric"><div class="metric-value">${(r.spa_rate || 0).toFixed(4)}</div><div class="metric-label">SPA rate</div></div>`;
-            html += `<div class="metric"><div class="metric-value">${(r.combined_detection_score || 0).toFixed(3)}</div><div class="metric-label">Score detección</div></div>`;
-            html += `</div>`;
-            html += `<p style="margin-top:12px;"><strong>${r.likely_stego ? "⚠️ Probable esteganografía detectada" : "✅ Bajo riesgo de detección"}</strong></p>`;
-            html += `</div>`;
-            $("#analyze-result").innerHTML = html;
-        } else {
-            $("#analyze-result").innerHTML = `<div class="result-box error">Error: ${(data && data.error) || "Desconocido"}</div>`;
-        }
-    });
-
-    // CAPACITY
-    $("#btn-capacity").addEventListener("click", async () => {
-        const file = state.capacity.file;
-        if (!file) { showToast("Selecciona una imagen", "error"); return; }
-
-        const fd = new FormData();
-        fd.append("cover", file);
-        fd.append("mode", $("#capacity-mode").value);
-        fd.append("platform", $("#capacity-platform").value);
-        fd.append("ecc", $("#capacity-ecc").value);
-
-        const data = await apiCall("/capacity", fd);
-        if (data && data.success) {
-            const cap = data.capacity_bytes;
-            $("#capacity-result").innerHTML = `
-                <div class="metrics">
-                    <div class="metric"><div class="metric-value">${formatBytes(cap)}</div><div class="metric-label">Capacidad útil</div></div>
-                    <div class="metric"><div class="metric-value">${data.mode}</div><div class="metric-label">Modo</div></div>
-                    <div class="metric"><div class="metric-value">${data.ecc || "auto"}</div><div class="metric-label">ECC</div></div>
-                    <div class="metric"><div class="metric-value">${data.platform || "—"}</div><div class="metric-label">Plataforma</div></div>
-                </div>
-                <p style="margin-top:12px;color:var(--text-muted)">Capacidad bruta: ${formatBytes(data.raw_capacity || 0)} · Overhead: ${formatBytes(data.overhead || 0)}</p>
-            `;
-        }
-    });
-
-    // BENCHMARK
-    $("#btn-benchmark").addEventListener("click", async () => {
-        const file = state.benchmark.file;
-        const msg = $("#bench-message").value;
-        if (!file) { showToast("Selecciona una imagen", "error"); return; }
-
-        const spinner = $("#bench-spinner");
-        spinner.style.display = "inline-block";
-
-        const modes = ["GHOST", "PHANTOM", "ARMOR", "FORTRESS", "HYBRID"];
-        let html = `<table style="width:100%;border-collapse:collapse;font-size:13px;">`;
-        html += `<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:8px;">Modo</th><th style="text-align:right;padding:8px;">Capacidad</th><th style="text-align:right;padding:8px;">Tiempo</th><th style="text-align:right;padding:8px;">PSNR</th><th style="text-align:center;padding:8px;">Estado</th></tr></thead><tbody>`;
-
-        for (const mode of modes) {
-            const fd = new FormData();
-            fd.append("cover", file);
-            fd.append("message", msg);
-            fd.append("mode", mode);
-            const data = await apiCall("/benchmark", fd);
-            if (data && data.success) {
-                html += `<tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px;font-weight:600;">${mode}</td>
-                    <td style="padding:8px;text-align:right;">${formatBytes(data.capacity_bytes || 0)}</td>
-                    <td style="padding:8px;text-align:right;">${(data.time_ms / 1000).toFixed(2)}s</td>
-                    <td style="padding:8px;text-align:right;">${(data.quality_metrics && data.quality_metrics.psnr_db) ? data.quality_metrics.psnr_db.toFixed(1) : "N/A"}</td>
-                    <td style="padding:8px;text-align:center;color:var(--success);">✓</td>
-                </tr>`;
-            } else {
-                html += `<tr style="border-bottom:1px solid var(--border);opacity:0.5;">
-                    <td style="padding:8px;">${mode}</td><td style="padding:8px;text-align:center;" colspan="4">Falló</td>
-                </tr>`;
-            }
-        }
-        html += `</tbody></table>`;
-        $("#bench-result").innerHTML = html;
-        spinner.style.display = "none";
-    });
-
-    // Init
-    checkBackend();
-    setInterval(checkBackend, 10000);
-    </script>
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchTab('embed'); }
+  if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchTab('extract'); }
+  if (e.ctrlKey && e.key === '3') { e.preventDefault(); switchTab('analyze'); }
+  if (e.ctrlKey && e.key === '4') { e.preventDefault(); switchTab('capacity'); }
+  if (e.ctrlKey && e.key === '5') { e.preventDefault(); switchTab('benchmark'); }
+  if (e.ctrlKey && e.key === '6') { e.preventDefault(); switchTab('publish'); }
+});
+</script>
 </body>
 </html>
