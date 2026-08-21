@@ -122,7 +122,12 @@ def main():
     ok &= copy_file(
         os.path.join(ROOT, "stegstr", "gui", "widget.html"),
         os.path.join(REPO_ROOT, "stegstr", "gui", "widget.html"),
-        "stegstr/gui/widget.html (placeholder avisado)"
+        "stegstr/gui/widget.html (SPA interactiva funcional)"
+    )
+    ok &= copy_file(
+        os.path.join(ROOT, "stegstr", "gui", "widget_server.py"),
+        os.path.join(REPO_ROOT, "stegstr", "gui", "widget_server.py"),
+        "stegstr/gui/widget_server.py (servidor REST para el widget)"
     )
 
     # ── 3. scripts/ ──
@@ -181,6 +186,8 @@ def main():
     print("  3. Verificar:                 python check_env.py")
     print("  4. Verificar CLI:             python -m stegstr.cli --help")
     print("  5. Configurar credenciales:   python -m stegstr.cli config --wizard")
+    print("  6. Iniciar widget:             python -m stegstr.gui.widget_server")
+    print("  7. Abrir navegador:           http://127.0.0.1:8080")
     print("=" * 70)
 
 if __name__ == "__main__":

@@ -1,31 +1,926 @@
 <!DOCTYPE html>
-<!--
-  Stegstr Widget — PLACEHOLDER
-
-  @TODO: Implementar explorador visual interactivo de los 5 modos de
-  esteganografía con comparación side-by-side, métricas en tiempo real,
-  y simulación de plataformas en el navegador.
-
-  Este archivo es un placeholder. La funcionalidad real está en
-  stegstr/gui/web_app.py (panel web Flask con backend).
--->
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Stegstr Widget v2.2.0 — Placeholder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stegstr Widget v2.2.0 — Explorador Visual de Esteganografía</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-        .notice { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; }
-        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+        :root {
+            --bg: #0f1117;
+            --bg-elevated: #161922;
+            --bg-card: #1c1f2a;
+            --border: #2a2e3b;
+            --text: #e2e4e9;
+            --text-muted: #8b92a8;
+            --accent: #4f8cff;
+            --accent-hover: #6fa0ff;
+            --accent-dim: #2a4a8a;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --transition: 0.2s ease;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-bottom: 20px; border-bottom: 1px solid var(--border);
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold; color: white;
+        }
+        .logo h1 { font-size: 22px; font-weight: 700; }
+        .logo span { color: var(--text-muted); font-size: 13px; font-weight: 400; }
+        .status-badge {
+            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .status-online { background: rgba(74,222,128,0.15); color: var(--success); }
+        .status-offline { background: rgba(248,113,113,0.15); color: var(--danger); }
+        .status-demo { background: rgba(251,191,36,0.15); color: var(--warning); }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab {
+            padding: 10px 20px; border-radius: var(--radius-sm); cursor: pointer;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            color: var(--text-muted); font-weight: 500; transition: var(--transition);
+            user-select: none;
+        }
+        .tab:hover { color: var(--text); border-color: var(--accent-dim); }
+        .tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Cards & Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
+        }
+        .card h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;
+                   color: var(--text-muted); margin-bottom: 16px; }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 40px 20px; text-align: center; cursor: pointer;
+            transition: var(--transition); position: relative; overflow: hidden;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent); background: rgba(79,140,255,0.05);
+        }
+        .drop-zone .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+        .drop-zone p { color: var(--text-muted); font-size: 14px; }
+        .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .preview-img { max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 12px; }
+
+        /* Mode Selector */
+        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .mode-card {
+            padding: 16px 12px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+            cursor: pointer; text-align: center; transition: var(--transition); background: var(--bg-elevated);
+        }
+        .mode-card:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
+        .mode-card.selected { border-color: var(--accent); background: rgba(79,140,255,0.1); }
+        .mode-card .mode-icon { font-size: 24px; margin-bottom: 8px; }
+        .mode-card .mode-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .mode-card .mode-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+
+        /* Form Controls */
+        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-muted); }
+        input[type="text"], input[type="password"], input[type="number"],
+        textarea, select {
+            width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-elevated);
+            color: var(--text); font-size: 14px; transition: var(--transition);
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        .input-group { margin-bottom: 16px; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .input-row { grid-template-columns: 1fr; } }
+
+        /* Sliders */
+        .slider-wrap { display: flex; align-items: center; gap: 12px; }
+        input[type="range"] {
+            flex: 1; -webkit-appearance: none; height: 6px; border-radius: 3px;
+            background: var(--border); outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: 2px solid var(--bg);
+        }
+        .slider-value { min-width: 48px; text-align: right; font-weight: 600; color: var(--accent); }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px; border-radius: var(--radius-sm); border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--transition);
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); }
+        .btn-danger { background: rgba(248,113,113,0.2); color: var(--danger); }
+        .btn-sm { padding: 8px 16px; font-size: 13px; }
+
+        /* Metrics */
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+        .metric {
+            background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 14px;
+            text-align: center; border: 1px solid var(--border);
+        }
+        .metric-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+
+        /* Results */
+        .result-box {
+            background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 16px;
+            border-left: 3px solid var(--accent); margin-top: 16px;
+        }
+        .result-box.error { border-left-color: var(--danger); }
+        .result-box.success { border-left-color: var(--success); }
+        .result-box pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; color: var(--text); }
+        .result-box .result-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
+
+        /* Comparison */
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+        .compare-item { text-align: center; }
+        .compare-item img { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .compare-item .label { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+        /* Progress & Loading */
+        .spinner {
+            width: 20px; height: 20px; border: 2px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay {
+            position: absolute; inset: 0; background: rgba(15,17,23,0.8);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: var(--radius); z-index: 10;
+        }
+
+        /* Detection Bars */
+        .bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-top: 6px; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .bar-fill.low { background: var(--success); }
+        .bar-fill.medium { background: var(--warning); }
+        .bar-fill.high { background: var(--danger); }
+
+        /* Platform tags */
+        .platform-tag {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+            border-radius: 20px; font-size: 12px; font-weight: 500;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+        }
+        .platform-tag.active { border-color: var(--accent); color: var(--accent); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
+            border-radius: var(--radius-sm); background: var(--bg-card);
+            border: 1px solid var(--border); box-shadow: var(--shadow);
+            transform: translateY(100px); opacity: 0; transition: all 0.3s ease;
+            z-index: 1000; max-width: 400px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { border-color: var(--danger); }
+        .toast.success { border-color: var(--success); }
+
+        /* Footer */
+        footer { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
 </head>
 <body>
-    <h1>Stegstr Widget v2.2.0</h1>
-    <div class="notice">
-        <strong>⚠️ Placeholder:</strong> Este widget visual no está implementado todavía.<br><br>
-        Usa el panel web completo en su lugar:<br>
-        <code>python -m stegstr.gui.web_app</code><br><br>
-        O consulta la documentación en <code>README.md</code>.
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">S</div>
+                <div>
+                    <h1>Stegstr Widget <span>v2.2.0</span></h1>
+                </div>
+            </div>
+            <div>
+                <span id="backend-status" class="status-badge status-offline">
+                    <span class="spinner" style="width:10px;height:10px;border-width:1px;display:none;" id="status-spinner"></span>
+                    <span id="status-text">Sin conexión</span>
+                </span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <div class="tab active" data-tab="embed">🔒 Ocultar</div>
+            <div class="tab" data-tab="extract">🔓 Extraer</div>
+            <div class="tab" data-tab="analyze">🔍 Analizar</div>
+            <div class="tab" data-tab="capacity">📊 Capacidad</div>
+            <div class="tab" data-tab="benchmark">⚡ Benchmark</div>
+        </nav>
+
+        <!-- TAB: EMBED -->
+        <div id="tab-embed" class="tab-content active">
+            <div class="grid">
+                <div class="card">
+                    <h3>1. Imagen de portada</h3>
+                    <div class="drop-zone" id="embed-drop">
+                        <input type="file" id="embed-file" accept="image/png,image/jpeg,image/jpg">
+                        <div class="icon">📁</div>
+                        <p>Arrastra una imagen o haz clic para elegir<br><small>PNG o JPEG, máx 16.384×16.384 px</small></p>
+                        <img id="embed-preview" class="preview-img" style="display:none;">
+                    </div>
+                    <div class="metrics" id="embed-file-info" style="display:none;">
+                        <div class="metric"><div class="metric-value" id="info-width">-</div><div class="metric-label">Ancho</div></div>
+                        <div class="metric"><div class="metric-value" id="info-height">-</div><div class="metric-label">Alto</div></div>
+                        <div class="metric"><div class="metric-value" id="info-format">-</div><div class="metric-label">Formato</div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>2. Modo de esteganografía</h3>
+                    <div class="mode-grid">
+                        <div class="mode-card selected" data-mode="HYBRID">
+                            <div class="mode-icon">⚡</div>
+                            <div class="mode-name">HYBRID</div>
+                            <div class="mode-desc">Auto-selección según plataforma</div>
+                        </div>
+                        <div class="mode-card" data-mode="FORTRESS">
+                            <div class="mode-icon">🏰</div>
+                            <div class="mode-name">FORTRESS</div>
+                            <div class="mode-desc">Máxima robustez. Ideal WhatsApp/Instagram</div>
+                        </div>
+                        <div class="mode-card" data-mode="ARMOR">
+                            <div class="mode-icon">🛡️</div>
+                            <div class="mode-name">ARMOR</div>
+                            <div class="mode-desc">Equilibrio robustez/capacidad</div>
+                        </div>
+                        <div class="mode-card" data-mode="GHOST">
+                            <div class="mode-icon">👻</div>
+                            <div class="mode-name">GHOST</div>
+                            <div class="mode-desc">Máxima capacidad en PNG sin pérdida</div>
+                        </div>
+                        <div class="mode-card" data-mode="PHANTOM">
+                            <div class="mode-icon">👤</div>
+                            <div class="mode-name">PHANTOM</div>
+                            <div class="mode-desc">Anti-detección. Resiste Chi²/RS/SPA</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>3. Parámetros</h3>
+                    <div class="input-group">
+                        <label>Plataforma de destino</label>
+                        <select id="embed-platform">
+                            <option value="">— Ninguna (modo manual) —</option>
+                            <option value="whatsapp_standard">WhatsApp Standard (agresivo)</option>
+                            <option value="whatsapp_hd">WhatsApp HD</option>
+                            <option value="telegram_photo">Telegram Foto</option>
+                            <option value="telegram_file">Telegram Archivo (sin pérdida)</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="signal">Signal</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="reddit">Reddit</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Delta (intensidad de embedding)</label>
+                        <div class="slider-wrap">
+                            <input type="range" id="embed-delta" min="0.5" max="50" step="0.5" value="8">
+                            <span class="slider-value" id="embed-delta-val">8.0</span>
+                        </div>
+                        <small style="color:var(--text-muted)">FORTRESS: 8-15 · ARMOR: 2-8 · GHOST/PHANTOM: N/A</small>
+                    </div>
+                    <div class="input-group">
+                        <label>ECC (corrección de errores)</label>
+                        <select id="embed-ecc">
+                            <option value="0">0 bytes (sin ECC)</option>
+                            <option value="16">16 bytes</option>
+                            <option value="24">24 bytes</option>
+                            <option value="32">32 bytes</option>
+                            <option value="40">40 bytes</option>
+                            <option value="48" selected>48 bytes (recomendado ARMOR)</option>
+                            <option value="64">64 bytes</option>
+                            <option value="96">96 bytes (recomendado FORTRESS)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label><input type="checkbox" id="embed-autotune" style="width:auto;margin-right:8px;"> Usar auto-tune (optimiza delta + ECC automáticamente)</label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>4. Mensaje y seguridad</h3>
+                    <div class="input-group">
+                        <label>Mensaje secreto</label>
+                        <textarea id="embed-message" placeholder="Escribe aquí el mensaje a ocultar..."></textarea>
+                        <small style="color:var(--text-muted)"><span id="msg-counter">0</span> bytes · Límite: 10MB comprimido / 50MB crudo</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Contraseña (opcional pero recomendada)</label>
+                        <input type="password" id="embed-password" placeholder="AES-256-GCM + Argon2id">
+                    </div>
+                    <button class="btn btn-primary" id="btn-embed" style="width:100%;">
+                        <span class="spinner" style="display:none;" id="embed-spinner"></span>
+                        <span id="embed-btn-text">🔒 Ocultar mensaje</span>
+                    </button>
+                    <div id="embed-result" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <div class="grid" style="margin-top:16px;">
+                <div class="card">
+                    <h3>Resultado</h3>
+                    <div id="embed-output-preview" style="text-align:center;min-height:150px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
+                        La imagen stego aparecerá aquí
+                    </div>
+                    <div id="embed-metrics" class="metrics" style="display:none;">
+                        <div class="metric"><div class="metric-value" id="m-psnr">-</div><div class="metric-label">PSNR (dB)</div></div>
+                        <div class="metric"><div class="metric-value" id="m-ssim">-</div><div class="metric-label">SSIM</div></div>
+                        <div class="metric"><div class="metric-value" id="m-mode">-</div><div class="metric-label">Modo usado</div></div>
+                        <div class="metric"><div class="metric-value" id="m-delta">-</div><div class="metric-label">Delta</div></div>
+                        <div class="metric"><div class="metric-value" id="m-ecc">-</div><div class="metric-label">ECC</div></div>
+                        <div class="metric"><div class="metric-value" id="m-time">-</div><div class="metric-label">Tiempo</div></div>
+                    </div>
+                    <a id="embed-download" class="btn btn-secondary btn-sm" style="display:none;margin-top:12px;width:100%;">⬇️ Descargar imagen stego</a>
+                </div>
+
+                <div class="card">
+                    <h3>Simulación de plataforma</h3>
+                    <div class="input-group">
+                        <select id="sim-platform">
+                            <option value="">Selecciona plataforma para simular...</option>
+                            <option value="whatsapp_standard">WhatsApp Standard</option>
+                            <option value="whatsapp_hd">WhatsApp HD</option>
+                            <option value="telegram_photo">Telegram Foto</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="signal">Signal</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-simulate" style="width:100%;">🧪 Simular procesamiento</button>
+                    <div id="sim-result" style="margin-top:12px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: EXTRACT -->
+        <div id="tab-extract" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>Imagen stego</h3>
+                    <div class="drop-zone" id="extract-drop">
+                        <input type="file" id="extract-file" accept="image/png,image/jpeg,image/jpg">
+                        <div class="icon">🔓</div>
+                        <p>Arrastra la imagen con el mensaje oculto</p>
+                        <img id="extract-preview" class="preview-img" style="display:none;">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Configuración</h3>
+                    <div class="input-group">
+                        <label>Contraseña (si se usó al ocultar)</label>
+                        <input type="password" id="extract-password" placeholder="Dejar vacío si no hubo contraseña">
+                    </div>
+                    <div class="input-group">
+                        <label>Forzar modo (opcional)</label>
+                        <select id="extract-mode">
+                            <option value="">— Auto-detectar —</option>
+                            <option value="FORTRESS">FORTRESS</option>
+                            <option value="ARMOR">ARMOR</option>
+                            <option value="GHOST">GHOST</option>
+                            <option value="PHANTOM">PHANTOM</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="btn-extract" style="width:100%;">
+                        <span class="spinner" style="display:none;" id="extract-spinner"></span>
+                        <span id="extract-btn-text">🔓 Extraer mensaje</span>
+                    </button>
+                </div>
+                <div class="card" style="grid-column:1/-1;">
+                    <h3>Mensaje extraído</h3>
+                    <div id="extract-result" style="min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
+                        El mensaje aparecerá aquí
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ANALYZE -->
+        <div id="tab-analyze" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>Imagen original (cover)</h3>
+                    <div class="drop-zone" id="analyze-cover-drop">
+                        <input type="file" id="analyze-cover-file" accept="image/png,image/jpeg">
+                        <div class="icon">📁</div>
+                        <p>Imagen sin mensaje oculto</p>
+                        <img id="analyze-cover-preview" class="preview-img" style="display:none;">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Imagen sospechosa (stego)</h3>
+                    <div class="drop-zone" id="analyze-stego-drop">
+                        <input type="file" id="analyze-stego-file" accept="image/png,image/jpeg">
+                        <div class="icon">🔍</div>
+                        <p>Imagen con posible mensaje oculto</p>
+                        <img id="analyze-stego-preview" class="preview-img" style="display:none;">
+                    </div>
+                </div>
+                <div class="card" style="grid-column:1/-1;">
+                    <button class="btn btn-primary" id="btn-analyze" style="width:100%;">
+                        <span class="spinner" style="display:none;" id="analyze-spinner"></span>
+                        🔍 Analizar detectabilidad
+                    </button>
+                    <div id="analyze-result" style="margin-top:16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CAPACITY -->
+        <div id="tab-capacity" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>Imagen</h3>
+                    <div class="drop-zone" id="capacity-drop">
+                        <input type="file" id="capacity-file" accept="image/png,image/jpeg">
+                        <div class="icon">📊</div>
+                        <p>Arrastra una imagen para calcular capacidad</p>
+                        <img id="capacity-preview" class="preview-img" style="display:none;">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Configuración</h3>
+                    <div class="input-group">
+                        <label>Modo</label>
+                        <select id="capacity-mode">
+                            <option value="FORTRESS">FORTRESS</option>
+                            <option value="ARMOR" selected>ARMOR</option>
+                            <option value="GHOST">GHOST</option>
+                            <option value="PHANTOM">PHANTOM</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Plataforma (afecta ECC)</label>
+                        <select id="capacity-platform">
+                            <option value="">— Ninguna —</option>
+                            <option value="whatsapp_standard">WhatsApp Standard</option>
+                            <option value="whatsapp_hd">WhatsApp HD</option>
+                            <option value="telegram_photo">Telegram Foto</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="twitter">Twitter / X</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="signal">Signal</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>ECC override</label>
+                        <select id="capacity-ecc">
+                            <option value="">— Por defecto —</option>
+                            <option value="0">0</option>
+                            <option value="16">16</option>
+                            <option value="32">32</option>
+                            <option value="48">48</option>
+                            <option value="64">64</option>
+                            <option value="96">96</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="btn-capacity" style="width:100%;">📊 Calcular capacidad</button>
+                </div>
+                <div class="card" style="grid-column:1/-1;">
+                    <h3>Resultados por modo</h3>
+                    <div id="capacity-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: BENCHMARK -->
+        <div id="tab-benchmark" class="tab-content">
+            <div class="card">
+                <h3>Benchmark rápido</h3>
+                <p style="color:var(--text-muted);margin-bottom:16px;">
+                    Compara los 5 modos en la imagen cargada. Mide capacidad, tiempo estimado y robustez simulada.
+                </p>
+                <div class="drop-zone" id="bench-drop">
+                    <input type="file" id="bench-file" accept="image/png,image/jpeg">
+                    <div class="icon">⚡</div>
+                    <p>Arrastra una imagen para el benchmark</p>
+                    <img id="bench-preview" class="preview-img" style="display:none;">
+                </div>
+                <div class="input-group" style="margin-top:16px;">
+                    <label>Mensaje de prueba</label>
+                    <input type="text" id="bench-message" value="Mensaje de prueba para benchmark" style="width:100%;">
+                </div>
+                <button class="btn btn-primary" id="btn-benchmark" style="width:100%;margin-top:12px;">
+                    <span class="spinner" style="display:none;" id="bench-spinner"></span>
+                    ⚡ Ejecutar benchmark
+                </button>
+                <div id="bench-result" style="margin-top:16px;"></div>
+            </div>
+        </div>
+
+        <footer>
+            Stegstr v2.2.0 — <a href="https://github.com/Juani1972/steganography" target="_blank">GitHub</a> —
+            Motor: 5 modos · AES-256-GCM · Argon2id · Reed-Solomon · Nostr · AI Agent<br>
+            <span style="color:var(--text-muted)">Este widget requiere el backend Flask. Ejecuta: <code>python -m stegstr.gui.web_app</code> o <code>python -m stegstr.gui.widget_server</code></span>
+        </footer>
     </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ============================================================
+    // Stegstr Widget v2.2.0 — Frontend SPA
+    // ============================================================
+    const API_BASE = "http://127.0.0.1:8080";
+    let backendOnline = false;
+    let demoMode = false;
+
+    // Estado
+    const state = {
+        embed: { file: null, mode: "HYBRID", platform: "", delta: 8, ecc: 48, autotune: false },
+        extract: { file: null, password: "", mode: "" },
+        analyze: { cover: null, stego: null },
+        capacity: { file: null, mode: "ARMOR", platform: "", ecc: "" },
+        benchmark: { file: null, message: "Mensaje de prueba para benchmark" }
+    };
+
+    // Utilidades
+    function $(sel) { return document.querySelector(sel); }
+    function $$(sel) { return document.querySelectorAll(sel); }
+    function showToast(msg, type="info") {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.className = "toast show " + type;
+        setTimeout(() => t.classList.remove("show"), 4000);
+    }
+    function formatBytes(b) {
+        if (b === 0) return "0 B";
+        const k = 1024, sizes = ["B","KB","MB","GB"];
+        const i = Math.floor(Math.log(b) / Math.log(k));
+        return parseFloat((b / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    }
+    function setLoading(btn, spinner, text, loading) {
+        btn.disabled = loading;
+        spinner.style.display = loading ? "inline-block" : "none";
+        text.style.opacity = loading ? "0.5" : "1";
+    }
+
+    // Backend detection
+    async function checkBackend() {
+        const badge = $("#backend-status");
+        const spinner = $("#status-spinner");
+        const text = $("#status-text");
+        spinner.style.display = "inline-block";
+        try {
+            const res = await fetch(API_BASE + "/health", { method: "GET", mode: "cors", signal: AbortSignal.timeout(3000) });
+            if (res.ok) {
+                const data = await res.json();
+                backendOnline = true;
+                demoMode = false;
+                badge.className = "status-badge status-online";
+                text.textContent = "Backend online (v" + (data.version || "?") + ")";
+            } else {
+                throw new Error("HTTP " + res.status);
+            }
+        } catch (e) {
+            backendOnline = false;
+            demoMode = true;
+            badge.className = "status-badge status-demo";
+            text.textContent = "Demo offline (sin backend)";
+        }
+        spinner.style.display = "none";
+    }
+
+    // Tabs
+    $$(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            $$(".tab").forEach(t => t.classList.remove("active"));
+            $$(".tab-content").forEach(c => c.classList.remove("active"));
+            tab.classList.add("active");
+            $("#tab-" + tab.dataset.tab).classList.add("active");
+        });
+    });
+
+    // Mode selector
+    $$(".mode-card").forEach(card => {
+        card.addEventListener("click", () => {
+            $$(".mode-card").forEach(c => c.classList.remove("selected"));
+            card.classList.add("selected");
+            state.embed.mode = card.dataset.mode;
+            // Auto-adjust delta based on mode
+            const deltaSlider = $("#embed-delta");
+            const deltaVal = $("#embed-delta-val");
+            if (state.embed.mode === "FORTRESS") { deltaSlider.value = 8; }
+            else if (state.embed.mode === "ARMOR") { deltaSlider.value = 4; }
+            else if (state.embed.mode === "HYBRID") { deltaSlider.value = 8; }
+            else { deltaSlider.value = 0.5; }
+            deltaVal.textContent = parseFloat(deltaSlider.value).toFixed(1);
+            state.embed.delta = parseFloat(deltaSlider.value);
+        });
+    });
+
+    // Delta slider
+    $("#embed-delta").addEventListener("input", e => {
+        $("#embed-delta-val").textContent = parseFloat(e.target.value).toFixed(1);
+        state.embed.delta = parseFloat(e.target.value);
+    });
+
+    // Message counter
+    $("#embed-message").addEventListener("input", e => {
+        const bytes = new Blob([e.target.value]).size;
+        $("#msg-counter").textContent = bytes;
+        if (bytes > 50 * 1024 * 1024) {
+            $("#msg-counter").style.color = "var(--danger)";
+        } else if (bytes > 10 * 1024 * 1024) {
+            $("#msg-counter").style.color = "var(--warning)";
+        } else {
+            $("#msg-counter").style.color = "var(--success)";
+        }
+    });
+
+    // File drop handlers
+    function setupDrop(dropId, fileId, previewId, infoId, stateKey) {
+        const drop = $(dropId), file = $(fileId), preview = $(previewId);
+        const info = infoId ? $(infoId) : null;
+        ["dragenter","dragover"].forEach(evt => {
+            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add("dragover"); });
+        });
+        ["dragleave","drop"].forEach(evt => {
+            drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove("dragover"); });
+        });
+        drop.addEventListener("drop", e => {
+            const f = e.dataTransfer.files[0];
+            if (f) handleFile(f, preview, info, stateKey);
+        });
+        file.addEventListener("change", e => {
+            const f = e.target.files[0];
+            if (f) handleFile(f, preview, info, stateKey);
+        });
+    }
+    function handleFile(file, preview, info, stateKey) {
+        if (!file.type.startsWith("image/")) {
+            showToast("Solo se aceptan imágenes PNG/JPEG", "error");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = "block";
+            state[stateKey].file = file;
+        };
+        reader.readAsDataURL(file);
+        if (info) {
+            const img = new Image();
+            img.onload = () => {
+                $("#info-width").textContent = img.width + " px";
+                $("#info-height").textContent = img.height + " px";
+                $("#info-format").textContent = file.type.replace("image/","").toUpperCase();
+                info.style.display = "grid";
+            };
+            img.src = URL.createObjectURL(file);
+        }
+    }
+    setupDrop("#embed-drop", "#embed-file", "#embed-preview", "#embed-file-info", "embed");
+    setupDrop("#extract-drop", "#extract-file", "#extract-preview", null, "extract");
+    setupDrop("#analyze-cover-drop", "#analyze-cover-file", "#analyze-cover-preview", null, "analyze");
+    setupDrop("#analyze-stego-drop", "#analyze-stego-file", "#analyze-stego-preview", null, "analyze");
+    setupDrop("#capacity-drop", "#capacity-file", "#capacity-preview", null, "capacity");
+    setupDrop("#bench-drop", "#bench-file", "#bench-preview", null, "benchmark");
+
+    // API calls
+    async function apiCall(endpoint, formData) {
+        if (!backendOnline) {
+            showToast("Backend no disponible. Ejecuta: python -m stegstr.gui.web_app", "error");
+            return null;
+        }
+        try {
+            const res = await fetch(API_BASE + endpoint, {
+                method: "POST", body: formData, mode: "cors"
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(err || "HTTP " + res.status);
+            }
+            return await res.json();
+        } catch (e) {
+            showToast("Error de conexión: " + e.message, "error");
+            return null;
+        }
+    }
+
+    // EMBED
+    $("#btn-embed").addEventListener("click", async () => {
+        const file = state.embed.file;
+        const msg = $("#embed-message").value;
+        if (!file) { showToast("Selecciona una imagen de portada", "error"); return; }
+        if (!msg) { showToast("Escribe un mensaje", "error"); return; }
+
+        const btn = $("#btn-embed"), spinner = $("#embed-spinner"), text = $("#embed-btn-text");
+        setLoading(btn, spinner, text, true);
+
+        const fd = new FormData();
+        fd.append("cover", file);
+        fd.append("message", msg);
+        fd.append("mode", state.embed.mode);
+        fd.append("platform", $("#embed-platform").value);
+        fd.append("delta", state.embed.delta);
+        fd.append("ecc", $("#embed-ecc").value);
+        fd.append("password", $("#embed-password").value);
+        fd.append("autotune", $("#embed-autotune").checked ? "true" : "false");
+
+        const data = await apiCall("/embed", fd);
+        setLoading(btn, spinner, text, false);
+
+        if (data && data.success) {
+            $("#embed-output-preview").innerHTML = `<img src="${data.stego_url}" style="max-width:100%;border-radius:8px;">`;
+            $("#embed-metrics").style.display = "grid";
+            $("#m-psnr").textContent = (data.quality_metrics && data.quality_metrics.psnr_db) ? data.quality_metrics.psnr_db.toFixed(1) : "N/A";
+            $("#m-ssim").textContent = (data.quality_metrics && data.quality_metrics.ssim) ? data.quality_metrics.ssim.toFixed(3) : "N/A";
+            $("#m-mode").textContent = data.mode;
+            $("#m-delta").textContent = data.delta_used;
+            $("#m-ecc").textContent = data.ecc_used;
+            $("#m-time").textContent = (data.time_ms / 1000).toFixed(2) + "s";
+            $("#embed-download").href = data.stego_url;
+            $("#embed-download").style.display = "block";
+            $("#embed-download").download = "stego_" + data.mode.toLowerCase() + ".png";
+            showToast("✅ Mensaje ocultado correctamente", "success");
+        } else {
+            $("#embed-result").innerHTML = `<div class="result-box error"><div class="result-title">Error</div><pre>${(data && data.error) || "Respuesta inválida del servidor"}</pre></div>`;
+        }
+    });
+
+    // SIMULATE
+    $("#btn-simulate").addEventListener("click", async () => {
+        const platform = $("#sim-platform").value;
+        if (!platform) { showToast("Selecciona una plataforma", "error"); return; }
+        if (!state.embed.file) { showToast("Primero oculta un mensaje", "error"); return; }
+
+        const fd = new FormData();
+        fd.append("image", state.embed.file);
+        fd.append("platform", platform);
+        const data = await apiCall("/simulate", fd);
+        if (data && data.success) {
+            let html = `<div class="result-box success"><div class="result-title">Simulación: ${platform}</div>`;
+            html += `<pre>Transformaciones: ${(data.transformations || []).join(", ")}</pre>`;
+            if (data.survived) html += `<p style="color:var(--success)">✅ Mensaje sobrevive</p>`;
+            else html += `<p style="color:var(--danger)">❌ Mensaje NO sobrevive (BER: ${data.ber || "N/A"})</p>`;
+            html += `</div>`;
+            $("#sim-result").innerHTML = html;
+        }
+    });
+
+    // EXTRACT
+    $("#btn-extract").addEventListener("click", async () => {
+        const file = state.extract.file;
+        if (!file) { showToast("Selecciona una imagen stego", "error"); return; }
+
+        const btn = $("#btn-extract"), spinner = $("#extract-spinner"), text = $("#extract-btn-text");
+        setLoading(btn, spinner, text, true);
+
+        const fd = new FormData();
+        fd.append("stego", file);
+        fd.append("password", $("#extract-password").value);
+        fd.append("mode", $("#extract-mode").value);
+
+        const data = await apiCall("/extract", fd);
+        setLoading(btn, spinner, text, false);
+
+        if (data && data.success && data.message) {
+            $("#extract-result").innerHTML = `<div class="result-box success"><div class="result-title">✅ Mensaje extraído (${data.mode || "auto"})</div><pre style="white-space:pre-wrap;word-break:break-word;">${data.message}</pre><small style="color:var(--text-muted)">Encoding: ${data.encoding || "utf-8"} · Delta usado: ${data.delta_used || "auto"}</small></div>`;
+        } else {
+            $("#extract-result").innerHTML = `<div class="result-box error"><div class="result-title">❌ No se encontró mensaje</div><pre>${(data && data.error) || "La imagen no contiene un mensaje oculto válido, o la contraseña/modo es incorrecto."}</pre></div>`;
+        }
+    });
+
+    // ANALYZE
+    $("#btn-analyze").addEventListener("click", async () => {
+        if (!state.analyze.cover || !state.analyze.stego) {
+            showToast("Necesitas ambas imágenes (cover + stego)", "error"); return;
+        }
+        const spinner = $("#analyze-spinner");
+        spinner.style.display = "inline-block";
+
+        const fd = new FormData();
+        fd.append("cover", state.analyze.cover);
+        fd.append("stego", state.analyze.stego);
+
+        const data = await apiCall("/analyze", fd);
+        spinner.style.display = "none";
+
+        if (data && data.success) {
+            const r = data.report;
+            let html = `<div class="result-box"><div class="result-title">📊 Análisis de detectabilidad</div>`;
+            html += `<div class="metrics" style="margin-top:12px;">`;
+            html += `<div class="metric"><div class="metric-value">${(r.chi2_p_value || 0).toFixed(4)}</div><div class="metric-label">Chi² p-value</div></div>`;
+            html += `<div class="metric"><div class="metric-value">${(r.rs_rate || 0).toFixed(4)}</div><div class="metric-label">RS rate</div></div>`;
+            html += `<div class="metric"><div class="metric-value">${(r.spa_rate || 0).toFixed(4)}</div><div class="metric-label">SPA rate</div></div>`;
+            html += `<div class="metric"><div class="metric-value">${(r.combined_detection_score || 0).toFixed(3)}</div><div class="metric-label">Score detección</div></div>`;
+            html += `</div>`;
+            html += `<p style="margin-top:12px;"><strong>${r.likely_stego ? "⚠️ Probable esteganografía detectada" : "✅ Bajo riesgo de detección"}</strong></p>`;
+            html += `</div>`;
+            $("#analyze-result").innerHTML = html;
+        } else {
+            $("#analyze-result").innerHTML = `<div class="result-box error">Error: ${(data && data.error) || "Desconocido"}</div>`;
+        }
+    });
+
+    // CAPACITY
+    $("#btn-capacity").addEventListener("click", async () => {
+        const file = state.capacity.file;
+        if (!file) { showToast("Selecciona una imagen", "error"); return; }
+
+        const fd = new FormData();
+        fd.append("cover", file);
+        fd.append("mode", $("#capacity-mode").value);
+        fd.append("platform", $("#capacity-platform").value);
+        fd.append("ecc", $("#capacity-ecc").value);
+
+        const data = await apiCall("/capacity", fd);
+        if (data && data.success) {
+            const cap = data.capacity_bytes;
+            $("#capacity-result").innerHTML = `
+                <div class="metrics">
+                    <div class="metric"><div class="metric-value">${formatBytes(cap)}</div><div class="metric-label">Capacidad útil</div></div>
+                    <div class="metric"><div class="metric-value">${data.mode}</div><div class="metric-label">Modo</div></div>
+                    <div class="metric"><div class="metric-value">${data.ecc || "auto"}</div><div class="metric-label">ECC</div></div>
+                    <div class="metric"><div class="metric-value">${data.platform || "—"}</div><div class="metric-label">Plataforma</div></div>
+                </div>
+                <p style="margin-top:12px;color:var(--text-muted)">Capacidad bruta: ${formatBytes(data.raw_capacity || 0)} · Overhead: ${formatBytes(data.overhead || 0)}</p>
+            `;
+        }
+    });
+
+    // BENCHMARK
+    $("#btn-benchmark").addEventListener("click", async () => {
+        const file = state.benchmark.file;
+        const msg = $("#bench-message").value;
+        if (!file) { showToast("Selecciona una imagen", "error"); return; }
+
+        const spinner = $("#bench-spinner");
+        spinner.style.display = "inline-block";
+
+        const modes = ["GHOST", "PHANTOM", "ARMOR", "FORTRESS", "HYBRID"];
+        let html = `<table style="width:100%;border-collapse:collapse;font-size:13px;">`;
+        html += `<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:8px;">Modo</th><th style="text-align:right;padding:8px;">Capacidad</th><th style="text-align:right;padding:8px;">Tiempo</th><th style="text-align:right;padding:8px;">PSNR</th><th style="text-align:center;padding:8px;">Estado</th></tr></thead><tbody>`;
+
+        for (const mode of modes) {
+            const fd = new FormData();
+            fd.append("cover", file);
+            fd.append("message", msg);
+            fd.append("mode", mode);
+            const data = await apiCall("/benchmark", fd);
+            if (data && data.success) {
+                html += `<tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px;font-weight:600;">${mode}</td>
+                    <td style="padding:8px;text-align:right;">${formatBytes(data.capacity_bytes || 0)}</td>
+                    <td style="padding:8px;text-align:right;">${(data.time_ms / 1000).toFixed(2)}s</td>
+                    <td style="padding:8px;text-align:right;">${(data.quality_metrics && data.quality_metrics.psnr_db) ? data.quality_metrics.psnr_db.toFixed(1) : "N/A"}</td>
+                    <td style="padding:8px;text-align:center;color:var(--success);">✓</td>
+                </tr>`;
+            } else {
+                html += `<tr style="border-bottom:1px solid var(--border);opacity:0.5;">
+                    <td style="padding:8px;">${mode}</td><td style="padding:8px;text-align:center;" colspan="4">Falló</td>
+                </tr>`;
+            }
+        }
+        html += `</tbody></table>`;
+        $("#bench-result").innerHTML = html;
+        spinner.style.display = "none";
+    });
+
+    // Init
+    checkBackend();
+    setInterval(checkBackend, 10000);
+    </script>
 </body>
 </html>

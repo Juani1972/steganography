@@ -80,7 +80,7 @@ Stegstr es un cliente de esteganografía en Python orientado a la supervivencia 
 | Wizard de credenciales | ✅ Funcional | Interactivo, guarda en `~/.config/stegstr/credentials.json` |
 | Panel web local | ✅ Funcional | Flask en `127.0.0.1` |
 | Esteganografía en video | ❌ No implementado | Placeholder — `VideoStegoEngine` vacío |
-| Widget HTML explorador | ❌ No implementado | Placeholder — página HTML estática vacía |
+| Widget HTML explorador | ✅ Funcional | SPA interactiva: embed/extract/analyze/capacity/benchmark. Requiere backend Flask |
 
 > **Nota sobre los simuladores:** son aproximaciones basadas en comportamientos documentados públicamente. No garantizan reproducir exactamente el procesamiento real de cada red social — para eso, usa la [validación en plataformas reales](#validación-en-plataformas-reales).
 
@@ -218,6 +218,36 @@ pip install -e ".[social]"  # incluye flask
 python -m stegstr.gui.web_app
 # abre http://127.0.0.1:8080
 ```
+
+### Widget visual interactivo (SPA)
+
+```bash
+# Método 1: Servidor dedicado del widget (recomendado)
+pip install -e ".[social]"  # incluye flask, flask-cors
+python -m stegstr.gui.widget_server
+# Abre http://127.0.0.1:8080
+```
+
+```bash
+# Método 2: Desde el panel web existente
+python -m stegstr.gui.web_app
+# El widget está disponible en http://127.0.0.1:8080/widget.html
+```
+
+El widget es una **SPA (Single Page Application)** moderna que permite:
+
+- **Ocultar mensajes** con selección visual de los 5 modos (cards interactivas)
+- **Extraer mensajes** de imágenes stego con detección automática de modo
+- **Analizar detectabilidad** comparando cover vs stego (Chi², RS, SPA)
+- **Calcular capacidad** por modo y plataforma con gráficos en tiempo real
+- **Benchmark rápido** comparando los 5 modos en la misma imagen
+- **Simulación de plataforma** para predecir supervivencia antes de publicar
+- **Drag & drop** de imágenes con preview instantáneo
+- **Métricas visuales** (PSNR, SSIM, delta, ECC, tiempo)
+- **Tema oscuro** responsive, funciona en móvil y escritorio
+- **Detección de backend** — si el servidor no está corriendo, muestra demo offline
+
+> **Nota:** El widget requiere el backend Flask (`widget_server.py` o `web_app.py`) para las operaciones de esteganografía reales. El motor está en Python (numpy, scipy, PIL, cryptography) y no puede ejecutarse en el navegador. El frontend se comunica vía HTTP con el backend.
 
 Desde el panel puedes:
 
