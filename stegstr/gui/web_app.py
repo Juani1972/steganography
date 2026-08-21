@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
 """
 Stegstr Control Center v2.2.0
-Interfaz web alternativa (wizard-style) para esteganografía LSB avanzada.
+Interfaz web alternativa (wizard-style).
 
-Correcciones v2.2.0:
-- Eliminada plataforma "Signal" (sin adaptador real)
-- Credenciales unificadas con adaptadores:
-  · Instagram: Business Account ID + Meta Page Access Token
-  · WhatsApp: Business Phone ID + Access Token + Recipient Phone
-  · Twitter/X: TWITTER_ACCESS_TOKEN_SECRET (nombre corregido)
-- Capacidad: consulta POST /capacity (backend) en lugar de valores hardcoded
-- Barra de capacidad: compara bytes_mensaje / capacidad_real (no tamaño_imagen / cap)
-- Simulador: RealisticPlatformSimulator (unificado con widget_server.py)
-- Añadido endpoint /api/capacity
+Correcciones funcionales (basado en código real del ZIP):
+- API del motor: .embed() / .extract() / .get_capacity() (no .hide())
+- RealisticPlatformSimulator en simulator_v2.py
+- StegoAnalyzer NO existe → eliminado; análisis básico con PIL/numpy
+- send_file importado de Flask
+- Bug HYBRID: nunca se pasa mode=HYBRID a .embed(); se deja None
+- Capacidad real vía endpoint /api/capacity (consulta motor real)
+- Barra de capacidad: mensaje/capacidad_real
+- Plataforma Signal eliminada
+- Credenciales unificadas
 """
 
-import os, sys, json, time, hashlib, tempfile, base64
+import os, sys, json, time, hashlib, tempfile
 from pathlib import Path
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_file
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from stegstr.stego.engine import StegoEngine, StegoMode
-from stegstr.stego.analyzer import StegoAnalyzer
-from stegstr.platform.simulator import RealisticPlatformSimulator
+from stegstr.platform.simulator_v2 import RealisticPlatformSimulator
 from stegstr.platform.adapters import (
     TelegramAdapter, DiscordAdapter, ImgurAdapter, RedditAdapter,
     TwitterAdapter, InstagramAdapter, WhatsAppAdapter, NostrAdapter
@@ -180,7 +179,7 @@ footer { text-align: center; margin-top: 24px; padding-top: 12px; border-top: 1p
         <input type="text" id="passwordInput" placeholder="Contraseña" style="display:none; flex:1; margin-bottom:0">
       </div>
       <div style="margin-top:8px; font-size:0.75rem; color:var(--text-dim)">
-        <span id="msgBytes">0</span> bytes | Modo sugerido: <span id="suggestedMode">HYBRID</span>
+        <span id="msgBytes">0</span> bytes | Modo sugerido: <span id="suggestedMode">HYBRID (auto)</span>
       </div>
     </div>
   </div>
@@ -484,13 +483,15 @@ def _save_upload(file_storage, prefix="upload") -> Path:
     file_storage.save(str(path))
     return path
 
-def _get_mode(mode_str: str) -> StegoMode:
+def _get_mode(mode_str: str):
+    """CRÍTICO: HYBRID → None (auto-select). Nunca pasar HYBRID al motor."""
+    if not mode_str or mode_str.lower() == "hybrid":
+        return None
     mode_map = {
         "fortress": StegoMode.FORTRESS, "armor": StegoMode.ARMOR,
         "ghost": StegoMode.GHOST, "phantom": StegoMode.PHANTOM,
-        "hybrid": StegoMode.HYBRID,
     }
-    return mode_map.get(mode_str.lower(), StegoMode.HYBRID)
+    return mode_map.get(mode_str.lower())
 
 @app.route("/")
 def index():
@@ -513,14 +514,19 @@ def api_hide():
 
         cover_path = _save_upload(cover, "cover")
         mode = _get_mode(mode_str)
-        engine = StegoEngine()
-        kwargs = {"password": password} if password else {}
-        result = engine.hide(cover_path, message, mode=mode, **kwargs)
-        stego_path = result.get("stego_path")
-        if not stego_path or not Path(stego_path).exists():
+        engine = StegoEngine(password=password or None)
+
+        stego_path = str(UPLOAD_FOLDER / f"stego_{int(time.time())}.png")
+        result = engine.embed(
+            cover_path, message, stego_path,
+            mode=mode,
+            target_platform=platform or None,
+        )
+
+        if not Path(stego_path).exists():
             return jsonify({"success": False, "error": "No se generó imagen stego"}), 500
 
-        ext = Path(stego_path).suffix
+        ext = ".png"
         out_name = f"stego_{int(time.time())}{ext}"
         out_path = UPLOAD_FOLDER / out_name
         import shutil
@@ -528,14 +534,18 @@ def api_hide():
 
         return jsonify({
             "success": True, "stego_url": f"/uploads/{out_name}",
-            "mode": mode_str, "capacity_used": result.get("capacity_used"), "psnr": result.get("psnr"),
+            "mode": result.get("mode", "HYBRID"),
+            "capacity_bits": result.get("capacity_bits"),
+            "message_bytes": result.get("message_bytes"),
+            "quality_metrics": result.get("quality_metrics", {}),
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        import traceback
+        return jsonify({"success": False, "error": str(e), "traceback": traceback.format_exc()}), 500
 
 @app.route("/api/capacity", methods=["POST"])
 def api_capacity():
-    """NUEVO: Calcula capacidad real consultando el motor."""
+    """Calcula capacidad real consultando el motor."""
     try:
         cover = request.files.get("cover")
         mode_str = request.form.get("mode", "ARMOR")
@@ -543,7 +553,7 @@ def api_capacity():
         if not cover:
             return jsonify({"success": False, "error": "Falta imagen"}), 400
         cover_path = _save_upload(cover, "cover")
-        mode = _get_mode(mode_str)
+        mode = _get_mode(mode_str) or StegoMode.ARMOR
         engine = StegoEngine()
         kwargs = {"mode": mode}
         if platform:
@@ -558,7 +568,6 @@ def api_capacity():
 
 @app.route("/api/simulate", methods=["POST"])
 def api_simulate():
-    """CORREGIDO: Usa RealisticPlatformSimulator (unificado con widget_server.py)."""
     try:
         data = request.get_json(force=True)
         stego_url = data.get("stego_url", "")
@@ -566,20 +575,19 @@ def api_simulate():
         if not stego_url:
             return jsonify({"success": False, "error": "Falta stego_url"}), 400
 
-        # stego_url es relativo tipo /uploads/...
         filename = stego_url.replace("/uploads/", "")
         stego_path = UPLOAD_FOLDER / filename
         if not stego_path.exists():
             return jsonify({"success": False, "error": "Imagen stego no encontrada"}), 404
 
         sim = RealisticPlatformSimulator()
-        result = sim.simulate(platform, str(stego_path))
+        processed_path = str(UPLOAD_FOLDER / f"sim_proc_{int(time.time())}.jpg")
+        result = sim.simulate(platform, str(stego_path), processed_path)
         return jsonify({
             "success": True, "platform": platform,
-            "survived": result.get("survived", False),
-            "psnr_after": result.get("psnr_after"),
-            "size_after_kb": result.get("size_after_kb"),
-            "modifications": result.get("modifications", []),
+            "transformations": result.get("transformations", []),
+            "original_size": result.get("original_size"),
+            "final_size": result.get("final_size"),
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -599,7 +607,6 @@ def api_publish():
         if not image_path.exists():
             return jsonify({"success": False, "error": "Imagen no encontrada"}), 404
 
-        # Inyectar credenciales desde localStorage del navegador
         for key, value in credentials.items():
             if value:
                 os.environ[key] = value

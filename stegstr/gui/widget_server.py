@@ -2,13 +2,15 @@
 """
 Stegstr Widget Server v2.2.0
 Backend Flask para la SPA widget.html.
-Expone endpoints REST para esteganografía, análisis, benchmark y publicación.
 
-Correcciones v2.2.0:
-- CORS restringido a localhost (seguridad)
-- Credenciales unificadas: Instagram (Business API), WhatsApp (Business API)
-- Credenciales Twitter: TWITTER_ACCESS_TOKEN_SECRET (nombre correcto)
-- Mapeo de credenciales sincronizado con adaptadores reales
+Correcciones funcionales (basado en código real del ZIP):
+- API del motor: .embed() / .extract() / .get_capacity() (no .hide())
+- RealisticPlatformSimulator en simulator_v2.py (no simulator.py)
+- StegoAnalyzer NO existe → eliminado
+- StegoBenchmark NO existe → eliminado
+- Bug HYBRID: nunca se pasa mode=HYBRID a .embed(); se deja None para auto-select
+- CORS restringido a localhost
+- Credenciales unificadas con adaptadores reales
 """
 
 import os, sys, json, time, hashlib, tempfile, base64, io
@@ -25,9 +27,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from stegstr.stego.engine import StegoEngine, StegoMode
-from stegstr.stego.analyzer import StegoAnalyzer
-from stegstr.stego.benchmark import StegoBenchmark
-from stegstr.platform.simulator import RealisticPlatformSimulator
+from stegstr.platform.simulator_v2 import RealisticPlatformSimulator
 from stegstr.platform.adapters import (
     TelegramAdapter, DiscordAdapter, ImgurAdapter, RedditAdapter,
     TwitterAdapter, InstagramAdapter, WhatsAppAdapter, NostrAdapter
@@ -35,7 +35,6 @@ from stegstr.platform.adapters import (
 
 # ── Flask App ──
 app = Flask(__name__)
-# CORS restringido a localhost/127.0.0.1 para seguridad
 CORS(app, resources={
     r"/api/*": {"origins": ["http://127.0.0.1:8080", "http://localhost:8080"]},
     r"/*":      {"origins": ["http://127.0.0.1:8080", "http://localhost:8080"]}
@@ -81,11 +80,7 @@ def _save_upload(file_storage, prefix="upload") -> Path:
     return path
 
 def _inject_credentials(platform: str, credentials: dict):
-    """
-    Inyecta credenciales en variables de entorno del proceso actual
-    de forma que los adaptadores las encuentren vía os.environ.get().
-    Mapeo sincronizado con los nombres que cada adaptador espera.
-    """
+    """Inyecta credenciales en os.environ para que los adaptadores las encuentren."""
     mapping = {
         "telegram": {
             "TELEGRAM_BOT_TOKEN": credentials.get("bot_token", ""),
@@ -127,16 +122,20 @@ def _inject_credentials(platform: str, credentials: dict):
         if value:
             os.environ[key] = value
 
-def _get_mode(mode_str: str) -> StegoMode:
-    """Convierte string a StegoMode. Acepta nombres en minúscula o mayúscula."""
+def _get_mode(mode_str: str) -> Optional[StegoMode]:
+    """
+    Convierte string a StegoMode.
+    CRÍTICO: HYBRID nunca se pasa al motor; devuelve None para auto-select.
+    """
+    if not mode_str or mode_str.lower() == "hybrid":
+        return None  # Dejar que el motor auto-seleccione
     mode_map = {
         "fortress": StegoMode.FORTRESS,
         "armor":    StegoMode.ARMOR,
         "ghost":    StegoMode.GHOST,
         "phantom":  StegoMode.PHANTOM,
-        "hybrid":   StegoMode.HYBRID,
     }
-    return mode_map.get(mode_str.lower(), StegoMode.HYBRID)
+    return mode_map.get(mode_str.lower())
 
 # ═══════════════════════════════════════════════════════════════
 # Endpoints
@@ -163,21 +162,32 @@ def embed():
         cover_path = _save_upload(cover, "cover")
         mode = _get_mode(mode_str)
 
-        engine = StegoEngine()
-        kwargs = {"password": password} if password else {}
+        engine = StegoEngine(password=password or None)
 
+        # Auto-tune: usa el motor real
         if autotune and platform:
-            kwargs["platform"] = platform
-            kwargs["autotune"] = True
+            tune_result = engine.auto_tune(cover_path, message, platform)
+            mode = tune_result.get("mode", mode)
+            delta = tune_result.get("delta")
+            ecc = tune_result.get("ecc")
+        else:
+            delta = None
+            ecc = None
 
-        result = engine.hide(cover_path, message, mode=mode, **kwargs)
+        stego_path = str(UPLOAD_FOLDER / f"stego_{int(time.time())}.png")
+        result = engine.embed(
+            cover_path, message, stego_path,
+            mode=mode,
+            target_platform=platform or None,
+            delta_override=delta,
+            ecc_override=ecc,
+        )
 
-        stego_path = result.get("stego_path")
-        if not stego_path or not Path(stego_path).exists():
+        if not Path(stego_path).exists():
             return jsonify({"success": False, "error": "No se generó imagen stego"}), 500
 
         # Copiar a uploads para servirla
-        ext = Path(stego_path).suffix
+        ext = ".png"
         out_name = f"stego_{int(time.time())}{ext}"
         out_path = UPLOAD_FOLDER / out_name
         import shutil
@@ -186,13 +196,15 @@ def embed():
         return jsonify({
             "success": True,
             "stego_url": f"/uploads/{out_name}",
-            "mode": mode_str,
-            "capacity_used": result.get("capacity_used"),
-            "psnr": result.get("psnr"),
+            "mode": result.get("mode", "HYBRID"),
+            "capacity_bits": result.get("capacity_bits"),
+            "message_bytes": result.get("message_bytes"),
+            "quality_metrics": result.get("quality_metrics", {}),
             "platform": platform,
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        import traceback
+        return jsonify({"success": False, "error": str(e), "traceback": traceback.format_exc()}), 500
 
 # ── Extract ──
 @app.route("/extract", methods=["POST"])
@@ -208,21 +220,24 @@ def extract():
         stego_path = _save_upload(stego, "stego")
         mode = _get_mode(mode_str) if mode_str else None
 
-        engine = StegoEngine()
-        kwargs = {"password": password} if password else {}
-        if mode:
-            kwargs["mode"] = mode
+        engine = StegoEngine(password=password or None)
+        result = engine.extract(stego_path, expected_mode=mode)
 
-        result = engine.extract(stego_path, **kwargs)
+        if result is None:
+            return jsonify({"success": False, "error": "No se encontró mensaje o la extracción falló"}), 400
+
         return jsonify({
             "success": True,
             "message": result.get("message", ""),
             "mode": result.get("mode", "unknown"),
+            "encoding": result.get("encoding", "utf-8"),
+            "raw_bytes": result.get("raw_bytes", 0),
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        import traceback
+        return jsonify({"success": False, "error": str(e), "traceback": traceback.format_exc()}), 500
 
-# ── Analyze ──
+# ── Analyze (simplificado, sin StegoAnalyzer) ──
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
@@ -234,9 +249,30 @@ def analyze():
         cover_path = _save_upload(cover, "cover")
         stego_path = _save_upload(stego, "stego")
 
-        analyzer = StegoAnalyzer()
-        report = analyzer.compare(cover_path, stego_path)
-        return jsonify({"success": True, **report})
+        # Análisis básico con PIL/numpy (sin dependencia de StegoAnalyzer)
+        cover_img = Image.open(cover_path).convert("RGB")
+        stego_img = Image.open(stego_path).convert("RGB")
+        c_arr = np.array(cover_img, dtype=np.float32)
+        s_arr = np.array(stego_img, dtype=np.float32)
+
+        mse = np.mean((c_arr - s_arr) ** 2)
+        psnr = 20 * np.log10(255.0 / np.sqrt(mse)) if mse > 0 else float("inf")
+
+        # Diferencia visual simple
+        diff = np.abs(c_arr - s_arr)
+        diff_mean = np.mean(diff)
+        diff_max = np.max(diff)
+
+        return jsonify({
+            "success": True,
+            "psnr_db": round(float(psnr), 2),
+            "mse": round(float(mse), 4),
+            "diff_mean": round(float(diff_mean), 2),
+            "diff_max": int(diff_max),
+            "cover_size": cover_img.size,
+            "stego_size": stego_img.size,
+            "note": "Análisis básico (PSNR/MSE). StegoAnalyzer no disponible en esta versión.",
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -253,7 +289,7 @@ def capacity():
             return jsonify({"success": False, "error": "Falta imagen"}), 400
 
         cover_path = _save_upload(cover, "cover")
-        mode = _get_mode(mode_str)
+        mode = _get_mode(mode_str) or StegoMode.ARMOR
 
         engine = StegoEngine()
         kwargs = {"mode": mode}
@@ -276,7 +312,7 @@ def capacity():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# ── Benchmark ──
+# ── Benchmark (simplificado, sin StegoBenchmark) ──
 @app.route("/benchmark", methods=["POST"])
 def benchmark():
     try:
@@ -288,11 +324,35 @@ def benchmark():
             return jsonify({"success": False, "error": "Falta imagen"}), 400
 
         cover_path = _save_upload(cover, "cover")
-        mode = _get_mode(mode_str)
+        mode = _get_mode(mode_str) or StegoMode.ARMOR
 
-        bench = StegoBenchmark()
-        result = bench.run(cover_path, message, mode=mode)
-        return jsonify({"success": True, **result})
+        import time as time_mod
+        engine = StegoEngine()
+
+        # Embed
+        t0 = time_mod.time()
+        stego_path = str(UPLOAD_FOLDER / f"bench_{int(time_mod.time())}.png")
+        meta = engine.embed(cover_path, message, stego_path, mode=mode)
+        t_embed = time_mod.time() - t0
+
+        # Extract
+        t0 = time_mod.time()
+        result = engine.extract(stego_path, expected_mode=mode)
+        t_extract = time_mod.time() - t0
+
+        success = result is not None and result.get("message") == message
+
+        return jsonify({
+            "success": True,
+            "mode": mode.name,
+            "embed_time_ms": round(t_embed * 1000, 2),
+            "extract_time_ms": round(t_extract * 1000, 2),
+            "roundtrip_ok": success,
+            "capacity_bits": meta.get("capacity_bits"),
+            "message_bytes": meta.get("message_bytes"),
+            "psnr_db": meta.get("quality_metrics", {}).get("psnr_db"),
+            "note": "Benchmark básico (embed/extract/roundtrip). StegoBenchmark no disponible.",
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -312,19 +372,25 @@ def simulate():
         mode = _get_mode(mode_str)
 
         engine = StegoEngine()
-        result = engine.hide(cover_path, message, mode=mode)
-        stego_path = result.get("stego_path")
+        stego_path = str(UPLOAD_FOLDER / f"sim_stego_{int(time.time())}.png")
+        meta = engine.embed(cover_path, message, stego_path, mode=mode)
 
         sim = RealisticPlatformSimulator()
-        sim_result = sim.simulate(platform, stego_path)
+        processed_path = str(UPLOAD_FOLDER / f"sim_proc_{int(time.time())}.jpg")
+        sim_result = sim.simulate(platform, stego_path, processed_path)
+
+        # Intentar extraer después de simulación
+        extracted = engine.extract(processed_path, expected_mode=mode)
+        survived = extracted is not None and extracted.get("message") == message
 
         return jsonify({
             "success": True,
             "platform": platform,
-            "survived": sim_result.get("survived", False),
-            "psnr_after": sim_result.get("psnr_after"),
-            "size_after_kb": sim_result.get("size_after_kb"),
-            "modifications": sim_result.get("modifications", []),
+            "survived": survived,
+            "mode_used": meta.get("mode"),
+            "transformations": sim_result.get("transformations", []),
+            "original_size": sim_result.get("original_size"),
+            "final_size": sim_result.get("final_size"),
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -343,7 +409,7 @@ def publish():
 
         image_path = _save_upload(image, "publish")
 
-        # Inyectar credenciales inline si se proporcionan
+        # Inyectar credenciales inline
         try:
             inline_creds = json.loads(creds_json)
             if inline_creds:
@@ -411,7 +477,6 @@ def publish_validate():
                 "platform": platform,
             }), 500
 
-        # Validación E2E: descargar y comparar
         url = pub_result.get("url", "")
         e2e = {"success": False, "url": url, "platform": platform}
 
@@ -434,15 +499,22 @@ def publish_validate():
                     if mode_str and mode_str != "auto":
                         engine = StegoEngine()
                         mode = _get_mode(mode_str)
-                        ext_result = engine.extract(downloaded_path, mode=mode)
-                        e2e["extracted_message"] = ext_result.get("message", "")
+                        ext_result = engine.extract(downloaded_path, expected_mode=mode)
+                        if ext_result:
+                            e2e["extracted_message"] = ext_result.get("message", "")
 
-                    # Calcular PSNR si tenemos cover (no disponible aquí, usamos proxy)
+                    # Calcular PSNR básico
                     try:
-                        from stegstr.stego.analyzer import StegoAnalyzer
-                        analyzer = StegoAnalyzer()
-                        psnr = analyzer.psnr(image_path, downloaded_path)
-                        e2e["psnr"] = round(psnr, 2) if psnr else None
+                        orig = Image.open(image_path).convert("RGB")
+                        down = Image.open(downloaded_path).convert("RGB")
+                        o_arr = np.array(orig, dtype=np.float32)
+                        d_arr = np.array(down, dtype=np.float32)
+                        # Resize si es necesario
+                        if o_arr.shape != d_arr.shape:
+                            d_arr = np.array(down.resize(orig.size, Image.LANCZOS), dtype=np.float32)
+                        mse = np.mean((o_arr - d_arr) ** 2)
+                        psnr = 20 * np.log10(255.0 / np.sqrt(mse)) if mse > 0 else float("inf")
+                        e2e["psnr"] = round(float(psnr), 2)
                     except Exception:
                         pass
 
@@ -520,10 +592,10 @@ if __name__ == "__main__":
     print("   - GET  /                    → widget.html")
     print("   - POST /embed               → Ocultar mensaje")
     print("   - POST /extract             → Extraer mensaje")
-    print("   - POST /analyze             → Analizar detectabilidad")
+    print("   - POST /analyze             → Analizar detectabilidad (básico)")
     print("   - POST /capacity            → Calcular capacidad real")
-    print("   - POST /benchmark           → Benchmark de modo")
-    print("   - POST /simulate            → Simular plataforma (RealisticPlatformSimulator)")
+    print("   - POST /benchmark           → Benchmark básico")
+    print("   - POST /simulate            → Simular plataforma")
     print("   - POST /publish             → Publicar en red social")
     print("   - POST /publish_validate    → Publicar + validación E2E")
     print("   - POST /configure_platform  → Guardar credenciales en RAM")
