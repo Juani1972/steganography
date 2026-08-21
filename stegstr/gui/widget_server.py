@@ -1,35 +1,23 @@
 #!/usr/bin/env python3
 """
-Stegstr Widget Server v2.2.0
+Stegstr Widget Server v2.2.0 (PATCHED)
 
 Servidor Flask ligero dedicado al widget visual.
 Expone endpoints REST JSON que consume el frontend SPA (widget.html).
 
-Novedad v2.2.0: Configuración de credenciales desde la GUI.
-Las credenciales se guardan en memoria del servidor (no persistentes).
+CAMBIOS v2.2.0:
+- Corregido import de NostrAdapter (ahora existe en adapters/__init__.py)
+- Corregido constructor de InstagramAdapter (account_id + access_token)
+- Corregido constructor de WhatsAppAdapter (phone_id + access_token + recipient_phone)
+- Validación E2E ahora compara mensaje original con extraído
+- caption ahora se pasa al adaptador cuando es posible
+- CORS restringido a 127.0.0.1
+- Añadido rate limiting básico y límite de tamaño de archivo
+- Modos de estego sincronizados con StegoMode (eliminados STANDARD/AGGRESSIVE)
 
 Uso:
     python -m stegstr.gui.widget_server
-    # o
-    python stegstr/gui/widget_server.py
-
     Abre http://127.0.0.1:8080 en el navegador.
-
-Endpoints:
-    GET  /              → Sirve widget.html
-    GET  /health        → Estado del backend {version, status}
-    POST /embed         → Ocultar mensaje
-    POST /extract       → Extraer mensaje
-    POST /capacity      → Calcular capacidad
-    POST /analyze       → Análisis de detectabilidad
-    POST /simulate      → Simular procesamiento de plataforma
-    POST /benchmark     → Benchmark rápido por modo
-    POST /optimize      → Auto-tune de parámetros
-    GET  /platform_status   → Estado de adaptadores (con credenciales GUI)
-    POST /publish           → Publicar en plataforma real
-    POST /publish_validate  → Publicar + validar E2E
-    GET  /config            → Leer credenciales guardadas
-    POST /config            → Guardar credenciales desde GUI
 """
 
 import os
@@ -43,7 +31,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-# Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -62,7 +49,6 @@ from stegstr.platform.simulator import PlatformSimulator
 from stegstr.platform.simulator_v2 import RealisticPlatformSimulator
 from stegstr.analysis.steganalysis import StegAnalyzer
 
-# ── Importar adaptadores de plataforma ──────────────────────────────
 try:
     from stegstr.platform.adapters import (
         TelegramAdapter, DiscordAdapter, ImgurAdapter,
@@ -75,16 +61,28 @@ except ImportError:
     print("[WARN] No se pudieron importar los adaptadores de plataforma.")
 
 app = Flask(__name__, static_folder=".")
-CORS(app, resources={r"/api/*": {"origins": "*"}, r"/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/api/*": {"origins": ["http://127.0.0.1:8080", "http://localhost:8080"]},
+    r"/*": {"origins": ["http://127.0.0.1:8080", "http://localhost:8080"]}
+})
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 WIDGET_HTML = Path(__file__).parent / "widget.html"
 APP_VERSION = "2.2.0"
 
-# ── Credenciales en memoria (configurables desde GUI) ───────────────
-# Estructura: {"telegram": {"bot_token": "...", "chat_id": "..."}, ...}
 GUI_CREDENTIALS: Dict[str, Dict[str, str]] = {}
+_request_log: Dict[str, list] = {}
+MAX_REQUESTS_PER_MINUTE = 60
 
-# ── Helpers ──
+def _check_rate_limit(ip: str) -> bool:
+    now = time.time()
+    if ip not in _request_log:
+        _request_log[ip] = []
+    _request_log[ip] = [t for t in _request_log[ip] if now - t < 60]
+    if len(_request_log[ip]) >= MAX_REQUESTS_PER_MINUTE:
+        return False
+    _request_log[ip].append(now)
+    return True
 
 def _img_to_b64(img: Image.Image, fmt: str = "PNG") -> str:
     buf = BytesIO()
@@ -110,20 +108,14 @@ def _mode_from_str(s: str) -> StegoMode:
 def _cors_jsonify(data, status=200):
     resp = jsonify(data)
     resp.status_code = status
-    resp.headers.add("Access-Control-Allow-Origin", "*")
+    resp.headers.add("Access-Control-Allow-Origin", "http://127.0.0.1:8080")
     return resp
 
 def _file_hash(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:16]
 
-
 def _get_adapter_instance(platform: str):
-    """
-    Crea una instancia del adaptador usando credenciales de la GUI
-    si están disponibles, o fallback a variables de entorno.
-    """
     creds = GUI_CREDENTIALS.get(platform, {})
-
     if platform == "telegram":
         return TelegramAdapter(
             bot_token=creds.get("bot_token") or None,
@@ -153,41 +145,45 @@ def _get_adapter_instance(platform: str):
         )
     elif platform == "instagram":
         return InstagramAdapter(
-            username=creds.get("username") or None,
-            password=creds.get("password") or None,
+            account_id=creds.get("account_id") or None,
+            access_token=creds.get("access_token") or None,
         )
     elif platform == "whatsapp":
         return WhatsAppAdapter(
-            api_key=creds.get("api_key") or None,
-            phone_number=creds.get("phone_number") or None,
+            phone_id=creds.get("phone_id") or None,
+            access_token=creds.get("access_token") or None,
+            recipient_phone=creds.get("recipient_phone") or None,
         )
     elif platform == "nostr":
+        relay_urls = None
+        if creds.get("relay_urls"):
+            relay_urls = [u.strip() for u in creds.get("relay_urls", "").split(",") if u.strip()]
         return NostrAdapter(
             private_key=creds.get("private_key") or None,
-            relay_urls=creds.get("relay_urls", "").split(",") if creds.get("relay_urls") else None,
+            relay_urls=relay_urls,
         )
     else:
         raise ValueError(f"Plataforma '{platform}' no soportada")
 
-
 def _check_adapter_configured(platform: str) -> tuple[bool, str]:
-    """Verifica si un adaptador está configurado usando credenciales GUI + env."""
     if not HAS_ADAPTERS:
         return False, "Adaptadores no importados"
     try:
         adapter = _get_adapter_instance(platform)
-        if hasattr(adapter, 'is_available'):
+        if hasattr(adapter, "is_available"):
             available = adapter.is_available()
             return available, "Adaptador listo" if available else "Faltan credenciales"
-        # Fallback: intentar inicializar
-        if hasattr(adapter, '_get_auth_headers'):
+        if hasattr(adapter, "_get_auth_headers"):
             adapter._get_auth_headers()
         return True, "Adaptador listo"
     except Exception as e:
         return False, str(e)
 
-
-# ── Routes originales ──
+@app.before_request
+def _rate_limit():
+    ip = request.remote_addr or "unknown"
+    if not _check_rate_limit(ip):
+        return _cors_jsonify({"error": "Rate limit exceeded. Max 60 requests/minute."}, 429)
 
 @app.route("/")
 def index():
@@ -454,14 +450,8 @@ def optimize():
     except Exception as e:
         return _cors_jsonify({"success": False, "error": str(e)}, 500)
 
-
-# ════════════════════════════════════════════════════════════════════
-#  CONFIGURACIÓN DE CREDENCIALES DESDE GUI
-# ════════════════════════════════════════════════════════════════════
-
 @app.route("/config", methods=["GET"])
 def get_config():
-    """Devuelve las credenciales guardadas en memoria (sin valores sensibles)."""
     masked = {}
     for platform, creds in GUI_CREDENTIALS.items():
         masked[platform] = {k: ("✓" if v else "✗") for k, v in creds.items()}
@@ -469,7 +459,6 @@ def get_config():
 
 @app.route("/config", methods=["POST"])
 def set_config():
-    """Guarda credenciales en memoria desde la GUI."""
     global GUI_CREDENTIALS
     data = request.get_json(force=True, silent=True) or {}
     platform = data.get("platform", "").lower().strip()
@@ -481,7 +470,6 @@ def set_config():
     if platform not in GUI_CREDENTIALS:
         GUI_CREDENTIALS[platform] = {}
 
-    # Guardar solo campos no vacíos
     for key, value in creds.items():
         if value and str(value).strip():
             GUI_CREDENTIALS[platform][key] = str(value).strip()
@@ -494,15 +482,9 @@ def set_config():
 
 @app.route("/config/clear", methods=["POST"])
 def clear_config():
-    """Limpia todas las credenciales guardadas en memoria."""
     global GUI_CREDENTIALS
     GUI_CREDENTIALS = {}
     return _cors_jsonify({"success": True, "message": "Credenciales eliminadas"})
-
-
-# ════════════════════════════════════════════════════════════════════
-#  PUBLICACIÓN REAL
-# ════════════════════════════════════════════════════════════════════
 
 ADAPTER_MAP = {
     "telegram": TelegramAdapter,
@@ -517,7 +499,6 @@ ADAPTER_MAP = {
 
 @app.route("/platform_status", methods=["GET"])
 def platform_status():
-    """Devuelve el estado de configuración de cada adaptador."""
     if not HAS_ADAPTERS:
         return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
 
@@ -532,7 +513,6 @@ def platform_status():
 
 @app.route("/publish", methods=["POST"])
 def publish():
-    """Publica una imagen en una plataforma real."""
     if not HAS_ADAPTERS:
         return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
 
@@ -556,9 +536,11 @@ def publish():
 
         try:
             adapter = _get_adapter_instance(platform)
-            result = adapter.upload(tmp_path)
+            if hasattr(adapter, "upload_with_caption"):
+                result = adapter.upload_with_caption(tmp_path, caption)
+            else:
+                result = adapter.upload(tmp_path)
 
-            # Construir URL según el adaptador
             url = result if isinstance(result, str) else (result.get("url") if isinstance(result, dict) else "")
 
             return _cors_jsonify({
@@ -579,7 +561,6 @@ def publish():
 
 @app.route("/publish_validate", methods=["POST"])
 def publish_validate():
-    """Publica, descarga de vuelta y valida E2E."""
     if not HAS_ADAPTERS:
         return _cors_jsonify({"error": "Adaptadores no disponibles"}, 503)
 
@@ -588,6 +569,7 @@ def publish_validate():
         platform = request.form.get("platform", "").lower().strip()
         caption = request.form.get("caption", "")
         mode_str = request.form.get("mode", "auto")
+        original_message = request.form.get("original_message", "")
 
         if not file:
             return _cors_jsonify({"error": "Falta imagen"}, 400)
@@ -618,9 +600,8 @@ def publish_validate():
                     "details": pub_result if isinstance(pub_result, dict) else {},
                 }, 500)
 
-            # Descargar
             dl_path = os.path.join(tempfile.mkdtemp(), "downloaded.png")
-            if hasattr(adapter, 'download'):
+            if hasattr(adapter, "download"):
                 adapter.download(url, dl_path)
             else:
                 import requests
@@ -633,23 +614,30 @@ def publish_validate():
             downloaded_size = len(downloaded_data)
             downloaded_pil = Image.open(BytesIO(downloaded_data))
 
-            # Extraer mensaje
             engine = StegoEngine()
             expected_mode = _mode_from_str(mode_str) if mode_str and mode_str != "auto" else None
             extract_result = engine.extract(dl_path, expected_mode=expected_mode)
             extracted_message = extract_result.get("message", "") if extract_result else ""
 
-            # PSNR
             analyzer = StegAnalyzer()
             report = analyzer.compare_images(original_pil, downloaded_pil)
             psnr = report.get("psnr", 0.0)
 
-            has_message = bool(extracted_message and len(extracted_message.strip()) > 0
-                               and not extracted_message.startswith("\x00"))
+            has_message = bool(
+                extracted_message
+                and len(extracted_message.strip()) > 0
+                and not extracted_message.startswith("\x00")
+            )
+            message_match = False
+            if has_message and original_message:
+                message_match = (extracted_message == original_message)
+            elif has_message and not original_message:
+                message_match = True
 
             e2e_result = {
-                "success": has_message,
+                "success": message_match,
                 "extracted_message": extracted_message if has_message else "No se pudo extraer mensaje legible",
+                "message_match": message_match,
                 "original_size": original_size,
                 "downloaded_size": downloaded_size,
                 "original_hash": original_hash,
@@ -675,12 +663,9 @@ def publish_validate():
         traceback.print_exc()
         return _cors_jsonify({"error": str(e)}, 500)
 
-
-# ── Main ──
-
 def main():
     print("=" * 60)
-    print(" Stegstr Widget Server v2.2.0")
+    print(" Stegstr Widget Server v2.2.0 (PATCHED)")
     print("=" * 60)
     print(f"Serving widget from: {WIDGET_HTML}")
     print("Open http://127.0.0.1:8080 in your browser")

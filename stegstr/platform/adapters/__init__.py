@@ -38,6 +38,11 @@ try:
 except ImportError:
     ImgurAdapter = None
 
+try:
+    from .nostr_adapter import NostrAdapter
+except ImportError:
+    NostrAdapter = None
+
 __all__ = [
     "TelegramAdapter",
     "WhatsAppAdapter",
@@ -47,4 +52,5 @@ __all__ = [
     "RedditAdapter",
     "DiscordAdapter",
     "ImgurAdapter",
+    "NostrAdapter",
 ]

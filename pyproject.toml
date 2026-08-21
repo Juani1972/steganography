@@ -5,127 +5,74 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stegstr"
 version = "2.2.0"
-description = "Steganografía Robusta para Redes Sociales con Nostr, AI Agent y Validación Real"
+description = "Esteganografía LSB avanzada con validación E2E en redes sociales"
 readme = "README.md"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Juani1972", email = "juani@example.com"}
+    {name = "Juani1972", email = "juani@example.com"},
 ]
+keywords = ["steganography", "lsb", "image", "security", "social-media"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Security :: Cryptography",
-    "Topic :: Multimedia :: Graphics",
 ]
-requires-python = ">=3.9"
+
 dependencies = [
-    "numpy>=1.24.0",
     "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
     "cryptography>=41.0.0",
-    "rich>=13.0.0",
-    "typer>=0.9.0",
-    # argon2-cffi es obligatorio — StegoEngine cifra siempre
-    # (incluso con la contraseña por defecto), así que sin esto cualquier
-    # embed()/extract() falla con RuntimeError aunque solo se instale el
-    # paquete base con `pip install -e .`
-    "argon2-cffi>=23.1.0",
-    # scipy es obligatorio para los modos DCT (FORTRESS, ARMOR, HYBRID)
-    # ya que el motor usa scipy.fftpack.dct/idct internamente
-    "scipy>=1.11.0",
+    "reedsolo>=1.7.0",
+    "opencv-python>=4.8.0",
+    "scikit-image>=0.21.0",
 ]
 
 [project.optional-dependencies]
-nostr = [
-    "websockets>=12.0",
-    "aiohttp>=3.9.0",
-    "secp256k1>=0.14.0",
-]
-agent = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-]
-full = [
-    "websockets>=12.0",
-    "aiohttp>=3.9.0",
-    "secp256k1>=0.14.0",
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-    "reedsolo>=1.7.0",
-    "selenium>=4.15.0",
-    "requests>=2.31.0",
+gui = [
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
 ]
 social = [
-    # Required by the real-world platform adapters
-    # (stegstr/platform/adapters/*.py)
-    "requests>=2.31.0",
-    "tweepy>=4.14.0",      # twitter.py
-    "praw>=7.7.0",         # reddit.py
-    "ngrok>=1.0.0",        # instagram.py (optional public tunnel)
-    "flask>=3.0.0",        # stegstr/gui/web_app.py (panel local)
-]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.1.0",
-    "hypothesis>=6.88.0",
-    "bandit>=1.7.5",
-    "safety>=2.3.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-]
-all = [
-    # Atajo para instalar todo de una vez: pip install -e ".[all]"
-    # (lista explícita en vez de auto-referenciar extras del propio paquete,
-    # que puede fallar en instalaciones editable con setuptools antiguo)
-    "websockets>=12.0",
-    "aiohttp>=3.9.0",
-    "secp256k1>=0.14.0",
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-    "reedsolo>=1.7.0",
-    "selenium>=4.15.0",
     "requests>=2.31.0",
     "tweepy>=4.14.0",
     "praw>=7.7.0",
-    "ngrok>=1.0.0",
-    "flask>=3.0.0",
+    "pyrogram>=2.0.0",
+    "aiohttp>=3.9.0",
+    "websockets>=12.0",
+    "secp256k1>=0.14.0",
+]
+dev = [
     "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
-    "hypothesis>=6.88.0",
-    "bandit>=1.7.5",
-    "safety>=2.3.0",
-    "black>=23.0.0",
     "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+full = [
+    "stegstr[gui,social,dev]",
 ]
 
 [project.scripts]
 stegstr = "stegstr.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/Juani1972/steganography"
-Repository = "https://github.com/Juani1972/steganography"
+stegstr-gui = "stegstr.gui.widget_server:main"
+stegstr-nostr = "stegstr.nostr.client:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ['stegstr*', 'tests*', 'benchmarks*', 'scripts*', 'examples*']
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-asyncio_mode = "auto"
-addopts = "-v --tb=short"
-
-[tool.black]
-line-length = 100
-target-version = ['py39', 'py310', 'py311', 'py312']
+include = ["stegstr*"]
 
 [tool.ruff]
-line-length = 100
-target-version = "py39"
+line-length = 120
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
