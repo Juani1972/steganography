@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stegstr Widget v2.2.0 — Explorador Visual de Esteganografía</title>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0b0f14; --surface: #111820; --surface-hover: #17202a;
+  --border: #1e2a35; --border-hover: #2a3a4a;
+  --text: #d8dee4; --text-dim: #7a8899; --text-bright: #e8eef4;
+  --accent: #4dabf7; --accent-glow: rgba(77,171,247,0.25);
+  --accent2: #51cf66; --accent2-glow: rgba(81,207,102,0.25);
+  --danger: #ff6b6b; --danger-glow: rgba(255,107,107,0.25);
+  --warning: #ffd43b; --warning-glow: rgba(255,212,59,0.25);
+  --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,0.4);
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', monospace;
+}
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; line-height: 1.6;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+/* ── Header ── */
+header { text-align: center; margin-bottom: 28px; }
+header h1 {
+  font-size: 2rem; font-weight: 700; color: var(--text-bright);
+  letter-spacing: -0.5px; display: flex; align-items: center;
+  justify-content: center; gap: 10px;
+}
+header h1 span { color: var(--accent); font-weight: 300; font-size: 1.1rem; }
+header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 4px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--border); padding-bottom: 2px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-dim); padding: 10px 16px; cursor: pointer;
+  font-size: 0.85rem; font-weight: 500; white-space: nowrap;
+  transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+  background: linear-gradient(to top, var(--accent-glow), transparent);
+}
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow); transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-hover); }
+.card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-bright); }
+.card h3 { font-size: 0.95rem; font-weight: 600; margin: 16px 0 8px; color: var(--text-bright); }
+
+/* ── Layout ── */
+.row { display: flex; gap: 16px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 260px; }
+@media (max-width: 700px) { .row { flex-direction: column; } }
+
+/* ── Form Elements ── */
+label { display: block; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 4px; font-weight: 500; }
+input[type="text"], input[type="number"], input[type="password"], textarea, select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 12px; border-radius: 6px;
+  font-size: 0.9rem; outline: none; transition: all 0.2s;
+  font-family: var(--font);
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+textarea { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: 0.85rem; }
+select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a8899' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #0b0f14; border: none;
+  padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+.btn:active { transform: translateY(0); }
+.btn-success { background: var(--accent2); }
+.btn-success:hover { box-shadow: 0 4px 12px var(--accent2-glow); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { box-shadow: 0 4px 12px var(--danger-glow); }
+.btn-warning { background: var(--warning); color: #1a1a1a; }
+.btn-warning:hover { box-shadow: 0 4px 12px var(--warning-glow); }
+.btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--border-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+/* ── Dropzone ── */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 32px 20px; text-align: center; color: var(--text-dim);
+  cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+  background: var(--bg);
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-glow);
+}
+.dropzone input { display: none; }
+.dropzone .icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+
+/* ── Preview ── */
+.preview-img {
+  max-width: 100%; max-height: 280px; border-radius: 6px;
+  border: 1px solid var(--border); display: none; margin-top: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* ── Result Box ── */
+.result-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px; margin-top: 12px;
+  font-family: var(--mono); font-size: 0.82rem; white-space: pre-wrap;
+  max-height: 320px; overflow-y: auto; color: var(--text-dim);
+  line-height: 1.5;
+}
+.result-box::-webkit-scrollbar { width: 6px; }
+.result-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Metric Row ── */
+.metric { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.metric:last-child { border-bottom: none; }
+.metric .value { font-family: var(--mono); color: var(--accent); font-weight: 500; }
+
+/* ── Status Badge ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 12px; font-size: 0.72rem;
+  font-weight: 600;
+}
+.status-ok { background: rgba(81,207,102,0.12); color: var(--accent2); }
+.status-err { background: rgba(255,107,107,0.12); color: var(--danger); }
+.status-warn { background: rgba(255,212,59,0.12); color: var(--warning); }
+.status-info { background: rgba(77,171,247,0.12); color: var(--accent); }
+
+/* ── Platform Card ── */
+.platform-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: border-color 0.2s;
+}
+.platform-card:hover { border-color: var(--border-hover); }
+.platform-card .platform-info { display: flex; align-items: center; gap: 10px; }
+.platform-card .platform-icon { font-size: 1.4rem; }
+.platform-card .platform-name { font-weight: 600; font-size: 0.9rem; color: var(--text-bright); }
+.platform-card .platform-desc { font-size: 0.75rem; color: var(--text-dim); }
+
+/* ── Publish Steps ── */
+.publish-steps {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.publish-step {
+  flex: 1; text-align: center; padding: 10px 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 0.78rem; color: var(--text-dim);
+  transition: all 0.2s;
+}
+.publish-step.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.publish-step.done { border-color: var(--accent2); color: var(--accent2); background: var(--accent2-glow); }
+.publish-step .step-num {
+  display: block; font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;
+}
+
+/* ── URL Box ── */
+.url-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; font-family: var(--mono);
+  font-size: 0.78rem; word-break: break-all; color: var(--accent);
+  cursor: pointer; transition: all 0.2s;
+}
+.url-box:hover { background: var(--accent-glow); border-color: var(--accent); }
+
+/* ── E2E Result ── */
+.e2e-result {
+  margin-top: 12px; padding: 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg);
+}
+.e2e-success { border-color: var(--accent2) !important; }
+.e2e-fail { border-color: var(--danger) !important; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Progress Bar ── */
+.progress-bar {
+  width: 100%; height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden; margin-top: 8px;
+}
+.progress-bar .fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width 0.3s; width: 0%;
+}
+
+/* ── Compare Grid ── */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.compare-grid img { width: 100%; border-radius: 6px; border: 1px solid var(--border); }
+@media (max-width: 700px) { .compare-grid { grid-template-columns: 1fr; } }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 12px 18px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none; align-items: center; gap: 8px; z-index: 1000;
+  animation: slideIn 0.3s ease; font-size: 0.85rem;
+  max-width: 400px;
+}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── Footer ── */
+footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem; }
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ── Credential Fields ── */
+.cred-group { display: none; }
+.cred-group.active { display: block; }
+.cred-field { margin-bottom: 10px; }
+.cred-hint { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔐 Stegstr Widget <span>v2.2.0</span></h1>
+    <p>Explorador visual de esteganografía LSB avanzada con publicación real a redes sociales</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="embed">🔒 Ocultar</button>
+    <button class="tab" data-tab="extract">🔓 Extraer</button>
+    <button class="tab" data-tab="analyze">🔍 Analizar</button>
+    <button class="tab" data-tab="capacity">📊 Capacidad</button>
+    <button class="tab" data-tab="benchmark">⚡ Benchmark</button>
+    <button class="tab" data-tab="publish">📡 Publicar</button>
+  </nav>
+
+  <!-- ═══════ EMBED ═══════ -->
+  <div class="panel active" id="embed">
+    <div class="card">
+      <h2>🔒 Ocultar mensaje en imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen portadora</label>
+          <div class="dropzone" id="embedDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen o haz clic para seleccionar</div>
+            <input type="file" id="embedFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="embedPreview">
+
+          <label style="margin-top:12px">Mensaje</label>
+          <textarea id="embedMsg" placeholder="Escribe tu mensaje secreto..."></textarea>
+
+          <label style="margin-top:8px">Modo de estego</label>
+          <select id="embedMode">
+            <option value="HYBRID" selected>HYBRID (auto-selección)</option>
+            <option value="FORTRESS">FORTRESS (máxima robustez)</option>
+            <option value="ARMOR">ARMOR (robustez + capacidad)</option>
+            <option value="GHOST">GHOST (máxima capacidad PNG)</option>
+            <option value="PHANTOM">PHANTOM (anti-detección LSB-M)</option>
+          </select>
+
+          <label style="margin-top:8px">Plataforma objetivo (para auto-tune)</label>
+          <select id="embedPlatform">
+            <option value="">Ninguna (sin simulación)</option>
+            <option value="telegram_photo">Telegram Foto</option>
+            <option value="telegram_file">Telegram Archivo</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp_standard">WhatsApp</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+          </select>
+
+          <label style="margin-top:8px">Contraseña (opcional)</label>
+          <input type="text" id="embedPassword" placeholder="Deja vacío para sin contraseña">
+
+          <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+            <label style="margin:0; display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" id="embedAutotune" style="width:auto">
+              Auto-tune para plataforma
+            </label>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="embedBtn">🚀 Ocultar</button>
+            <button class="btn btn-secondary" id="embedClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultado</label>
+          <div class="result-box" id="embedResult">Esperando...</div>
+          <div id="embedDownload" style="margin-top:8px; display:none">
+            <a class="btn" id="embedLink" download="stego.png">⬇️ Descargar imagen stego</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ EXTRACT ═══════ -->
+  <div class="panel" id="extract">
+    <div class="card">
+      <h2>🔓 Extraer mensaje de imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen stego</label>
+          <div class="dropzone" id="extractDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego o haz clic</div>
+            <input type="file" id="extractFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="extractPreview">
+
+          <label style="margin-top:12px">Modo esperado (opcional)</label>
+          <select id="extractMode">
+            <option value="">Auto-detectar</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <label style="margin-top:8px">Contraseña (si aplica)</label>
+          <input type="text" id="extractPassword" placeholder="Contraseña usada al ocultar">
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="extractBtn">🔍 Extraer</button>
+            <button class="btn btn-secondary" id="extractClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Mensaje extraído</label>
+          <div class="result-box" id="extractResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ANALYZE ═══════ -->
+  <div class="panel" id="analyze">
+    <div class="card">
+      <h2>🔍 Análisis de detectabilidad</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen original (cover)</label>
+          <div class="dropzone" id="analyzeDrop1">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen original</div>
+            <input type="file" id="analyzeFile1" accept="image/*">
+          </div>
+          <img class="preview-img" id="analyzePreview1">
+        </div>
+        <div class="col">
+          <label>Imagen con mensaje oculto (stego)</label>
+          <div class="dropzone" id="analyzeDrop2">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego</div>
+            <input type="file" id="analyzeFile2" accept="image/*">
+          </div>
+          <img class="preview-img" id="analyzePreview2">
+        </div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:8px">
+        <button class="btn btn-success" id="analyzeBtn">📊 Analizar</button>
+        <button class="btn btn-secondary" id="analyzeClear">Limpiar</button>
+      </div>
+      <div class="result-box" id="analyzeResult" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ═══════ CAPACITY ═══════ -->
+  <div class="panel" id="capacity">
+    <div class="card">
+      <h2>📊 Capacidad de la imagen</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen portadora</label>
+          <div class="dropzone" id="capacityDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen para analizar</div>
+            <input type="file" id="capacityFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="capacityPreview">
+
+          <label style="margin-top:12px">Modo</label>
+          <select id="capacityMode">
+            <option value="ARMOR" selected>ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <label style="margin-top:8px">Plataforma objetivo</label>
+          <select id="capacityPlatform">
+            <option value="">Ninguna</option>
+            <option value="telegram_photo">Telegram Foto</option>
+            <option value="telegram_file">Telegram Archivo</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp_standard">WhatsApp</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+          </select>
+
+          <label style="margin-top:8px">ECC (bytes, opcional)</label>
+          <input type="number" id="capacityECC" placeholder="48" min="0" max="255">
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-success" id="capacityBtn">📊 Calcular</button>
+            <button class="btn btn-secondary" id="capacityClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultados</label>
+          <div class="result-box" id="capacityResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ BENCHMARK ═══════ -->
+  <div class="panel" id="benchmark">
+    <div class="card">
+      <h2>⚡ Benchmark por modo</h2>
+      <div class="row">
+        <div class="col">
+          <label>Imagen de prueba</label>
+          <div class="dropzone" id="benchmarkDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen de prueba</div>
+            <input type="file" id="benchmarkFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="benchmarkPreview">
+
+          <label style="margin-top:12px">Mensaje de prueba</label>
+          <input type="text" id="benchmarkMsg" value="Mensaje de prueba para benchmark" style="margin-bottom:8px">
+
+          <label>Modo</label>
+          <select id="benchmarkMode">
+            <option value="ARMOR" selected>ARMOR</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-success" id="benchmarkBtn">⚡ Ejecutar</button>
+            <button class="btn btn-secondary" id="benchmarkClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultados</label>
+          <div class="result-box" id="benchmarkResult">Esperando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PUBLISH ═══════ -->
+  <div class="panel" id="publish">
+    <div class="card">
+      <h2>📡 Publicar en plataformas reales</h2>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:16px">
+        Sube tu imagen stego a plataformas reales. Introduce las credenciales directamente en el formulario
+        o configúralas como variables de entorno en el servidor.
+      </p>
+
+      <!-- ═══════ CREDENTIALS CONFIGURATION ═══════ -->
+      <h3>🔐 Configurar credenciales</h3>
+      <p style="color:var(--text-dim); font-size:0.82rem; margin-bottom:10px">
+        Introduce las credenciales directamente aquí. Se guardan solo en memoria (RAM) y se pierden al cerrar el servidor.
+        También puedes introducirlas inline al publicar.
+      </p>
+
+      <div class="row" style="margin-bottom:12px">
+        <div class="col">
+          <label>Plataforma a configurar</label>
+          <select id="credPlatform">
+            <option value="">-- Selecciona plataforma --</option>
+            <option value="telegram">Telegram</option>
+            <option value="discord">Discord</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="nostr">Nostr</option>
+          </select>
+        </div>
+        <div class="col" style="display:flex; align-items:flex-end; gap:8px">
+          <button class="btn btn-secondary" id="loadCredFields" style="margin-bottom:0">Cargar campos</button>
+          <button class="btn btn-danger" id="clearAllCreds" style="margin-bottom:0">🗑️ Limpiar todas</button>
+        </div>
+      </div>
+
+      <div id="credFieldsBox" style="display:none; margin-bottom:16px">
+        <!-- Campos dinámicos se inyectan aquí -->
+      </div>
+
+      <div id="credSavedBox" style="margin-bottom:16px">
+        <h3 style="font-size:0.9rem; margin-bottom:8px">💾 Plataformas configuradas en memoria</h3>
+        <div id="credSavedList" style="font-size:0.82rem; color:var(--text-dim)">
+          Ninguna configurada
+        </div>
+      </div>
+
+      <div class="publish-steps">
+        <div class="publish-step active" id="step1">
+          <span class="step-num">1</span>
+          Seleccionar imagen
+        </div>
+        <div class="publish-step" id="step2">
+          <span class="step-num">2</span>
+          Elegir plataforma
+        </div>
+        <div class="publish-step" id="step3">
+          <span class="step-num">3</span>
+          Configurar credenciales
+        </div>
+        <div class="publish-step" id="step4">
+          <span class="step-num">4</span>
+          Publicar
+        </div>
+        <div class="publish-step" id="step5">
+          <span class="step-num">5</span>
+          Validar E2E
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Imagen stego a publicar</label>
+          <div class="dropzone" id="publishDrop">
+            <span class="icon">📁</span>
+            <div>Arrastra imagen stego o haz clic</div>
+            <input type="file" id="publishFile" accept="image/*">
+          </div>
+          <img class="preview-img" id="publishPreview">
+
+          <label style="margin-top:12px">Plataforma</label>
+          <select id="publishPlatform">
+            <option value="">-- Selecciona plataforma --</option>
+            <option value="telegram">Telegram</option>
+            <option value="discord">Discord</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="nostr">Nostr</option>
+          </select>
+
+          <label style="margin-top:8px">Mensaje / Caption (opcional)</label>
+          <input type="text" id="publishCaption" placeholder="Caption para la publicación">
+
+          <label style="margin-top:8px">Modo de estego (para validación E2E)</label>
+          <select id="publishMode">
+            <option value="auto">Auto-detectar</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
+            <option value="HYBRID">HYBRID</option>
+          </select>
+
+          <!-- Credenciales dinámicas inline -->
+          <div id="credentialsBox" style="margin-top:16px; display:none">
+            <h3>🔑 Credenciales de la plataforma</h3>
+            <p class="cred-hint" style="margin-bottom:10px">
+              Estas credenciales se envían al servidor solo para esta publicación.
+              Si las dejas vacías, se usarán las variables de entorno del servidor.
+            </p>
+
+            <!-- Telegram -->
+            <div class="cred-group" data-platform="telegram">
+              <div class="cred-field">
+                <label>Bot Token</label>
+                <input type="password" class="cred-input" data-key="TELEGRAM_BOT_TOKEN" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+              </div>
+              <div class="cred-field">
+                <label>Chat ID</label>
+                <input type="text" class="cred-input" data-key="TELEGRAM_CHAT_ID" placeholder="-1001234567890">
+              </div>
+            </div>
+
+            <!-- Discord -->
+            <div class="cred-group" data-platform="discord">
+              <div class="cred-field">
+                <label>Webhook URL</label>
+                <input type="password" class="cred-input" data-key="DISCORD_WEBHOOK_URL" placeholder="https://discord.com/api/webhooks/...">
+              </div>
+            </div>
+
+            <!-- Imgur -->
+            <div class="cred-group" data-platform="imgur">
+              <div class="cred-field">
+                <label>Client ID</label>
+                <input type="password" class="cred-input" data-key="IMGUR_CLIENT_ID" placeholder="a1b2c3d4e5f6789">
+              </div>
+            </div>
+
+            <!-- Reddit -->
+            <div class="cred-group" data-platform="reddit">
+              <div class="cred-field">
+                <label>Client ID</label>
+                <input type="password" class="cred-input" data-key="REDDIT_CLIENT_ID" placeholder="abc123def456">
+              </div>
+              <div class="cred-field">
+                <label>Client Secret</label>
+                <input type="password" class="cred-input" data-key="REDDIT_CLIENT_SECRET" placeholder="secreto">
+              </div>
+              <div class="cred-field">
+                <label>Username</label>
+                <input type="text" class="cred-input" data-key="REDDIT_USERNAME" placeholder="tu_usuario">
+              </div>
+              <div class="cred-field">
+                <label>Password</label>
+                <input type="password" class="cred-input" data-key="REDDIT_PASSWORD" placeholder="tu_contraseña">
+              </div>
+            </div>
+
+            <!-- Twitter -->
+            <div class="cred-group" data-platform="twitter">
+              <div class="cred-field">
+                <label>API Key</label>
+                <input type="password" class="cred-input" data-key="TWITTER_API_KEY" placeholder="...">
+              </div>
+              <div class="cred-field">
+                <label>API Secret</label>
+                <input type="password" class="cred-input" data-key="TWITTER_API_SECRET" placeholder="...">
+              </div>
+              <div class="cred-field">
+                <label>Access Token</label>
+                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN" placeholder="...">
+              </div>
+              <div class="cred-field">
+                <label>Access Token Secret</label>
+                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN_SECRET" placeholder="...">
+              </div>
+            </div>
+
+            <!-- Instagram -->
+            <div class="cred-group" data-platform="instagram">
+              <div class="cred-field">
+                <label>Business Account ID</label>
+                <input type="text" class="cred-input" data-key="INSTAGRAM_BUSINESS_ACCOUNT_ID" placeholder="17841400000000000">
+              </div>
+              <div class="cred-field">
+                <label>Meta Page Access Token</label>
+                <input type="password" class="cred-input" data-key="META_PAGE_ACCESS_TOKEN" placeholder="EAA...">
+              </div>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="cred-group" data-platform="whatsapp">
+              <div class="cred-field">
+                <label>Business Phone ID</label>
+                <input type="text" class="cred-input" data-key="WHATSAPP_BUSINESS_PHONE_ID" placeholder="123456789012345">
+              </div>
+              <div class="cred-field">
+                <label>Access Token</label>
+                <input type="password" class="cred-input" data-key="WHATSAPP_ACCESS_TOKEN" placeholder="EAA...">
+              </div>
+              <div class="cred-field">
+                <label>Recipient Phone (self-messaging)</label>
+                <input type="text" class="cred-input" data-key="WHATSAPP_RECIPIENT_PHONE" placeholder="+34123456789">
+              </div>
+            </div>
+
+            <!-- Nostr -->
+            <div class="cred-group" data-platform="nostr">
+              <div class="cred-field">
+                <label>Private Key (hex)</label>
+                <input type="password" class="cred-input" data-key="NOSTR_PRIVATE_KEY" placeholder="nsec1... o hex">
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-success" id="publishBtn">
+              <span id="publishSpinner" style="display:none"><span class="spinner"></span></span>
+              📡 Publicar
+            </button>
+            <button class="btn btn-warning" id="publishValidateBtn">
+              <span id="validateSpinner" style="display:none"><span class="spinner"></span></span>
+              ✅ Publicar + Validar E2E
+            </button>
+            <button class="btn btn-secondary" id="publishClear">Limpiar</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <label>Resultado de publicación</label>
+          <div class="result-box" id="publishResult">Esperando...</div>
+
+          <div id="publishUrlBox" style="margin-top:12px; display:none">
+            <label>URL de la publicación</label>
+            <div class="url-box" id="publishUrl" title="Haz clic para copiar"></div>
+          </div>
+
+          <div id="e2eResultBox" style="display:none">
+            <label style="margin-top:12px">Resultado validación E2E</label>
+            <div class="e2e-result" id="e2eResult"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Stegstr v2.2.0 — Widget visual para exploración de esteganografía LSB avanzada
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/**
+ * Stegstr Widget v2.2.0 — Frontend SPA
+ * Consume los endpoints REST del widget_server.py
+ */
+const API_BASE = "http://127.0.0.1:8080";
+let currentPubResult = null;
+let lastCapacityBytes = 0;
+
+// ── UI Helpers ──
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'flex';
+  const colors = {
+    error:   'var(--danger)',
+    success: 'var(--accent2)',
+    warning: 'var(--warning)',
+    info:    'var(--accent)'
+  };
+  t.style.borderColor = colors[type] || colors.info;
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.tab));
+});
+
+// ── Dropzones ──
+
+function setupDropzone(dropId, fileId, previewId) {
+  const drop = document.getElementById(dropId);
+  const file = document.getElementById(fileId);
+  const preview = document.getElementById(previewId);
+  if (!drop || !file) return;
+
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      file.files = e.dataTransfer.files;
+      showPreview(file.files[0], preview);
+    }
+  });
+  file.addEventListener('change', () => {
+    if (file.files.length) showPreview(file.files[0], preview);
+  });
+}
+
+function showPreview(file, img) {
+  if (!img) return;
+  const reader = new FileReader();
+  reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
+  reader.readAsDataURL(file);
+}
+
+setupDropzone('embedDrop',   'embedFile',   'embedPreview');
+setupDropzone('extractDrop', 'extractFile', 'extractPreview');
+setupDropzone('analyzeDrop1','analyzeFile1','analyzePreview1');
+setupDropzone('analyzeDrop2','analyzeFile2','analyzePreview2');
+setupDropzone('capacityDrop','capacityFile','capacityPreview');
+setupDropzone('benchmarkDrop','benchmarkFile','benchmarkPreview');
+setupDropzone('publishDrop', 'publishFile', 'publishPreview');
+
+// ── EMBED ──
+
+document.getElementById('embedBtn').addEventListener('click', async () => {
+  const file = document.getElementById('embedFile').files[0];
+  const msg = document.getElementById('embedMsg').value;
+  const mode = document.getElementById('embedMode').value;
+  const platform = document.getElementById('embedPlatform').value;
+  const password = document.getElementById('embedPassword').value;
+  const autotune = document.getElementById('embedAutotune').checked;
+
+  if (!file || !msg) return showToast('Falta imagen o mensaje', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('message', msg);
+  fd.append('mode', mode);
+  if (platform) fd.append('platform', platform);
+  if (password) fd.append('password', password);
+  fd.append('autotune', autotune ? 'true' : 'false');
+
+  const res = await fetch(API_BASE + '/embed', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('embedResult');
+  box.textContent = JSON.stringify(data, null, 2);
+
+  if (data.success && data.stego_url) {
+    const link = document.getElementById('embedLink');
+    link.href = data.stego_url;
+    document.getElementById('embedDownload').style.display = 'block';
+    showToast('Mensaje ocultado correctamente', 'success');
+  } else {
+    showToast(data.error || 'Error al ocultar', 'error');
+  }
+});
+
+document.getElementById('embedClear').addEventListener('click', () => {
+  document.getElementById('embedFile').value = '';
+  document.getElementById('embedPreview').style.display = 'none';
+  document.getElementById('embedMsg').value = '';
+  document.getElementById('embedResult').textContent = 'Esperando...';
+  document.getElementById('embedDownload').style.display = 'none';
+});
+
+// ── EXTRACT ──
+
+document.getElementById('extractBtn').addEventListener('click', async () => {
+  const file = document.getElementById('extractFile').files[0];
+  const mode = document.getElementById('extractMode').value;
+  const password = document.getElementById('extractPassword').value;
+  if (!file) return showToast('Falta imagen stego', 'error');
+
+  const fd = new FormData();
+  fd.append('stego', file);
+  if (mode) fd.append('mode', mode);
+  if (password) fd.append('password', password);
+
+  const res = await fetch(API_BASE + '/extract', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('extractResult');
+  box.textContent = data.success ? data.message : (data.error || 'Error');
+  showToast(data.success ? 'Mensaje extraído' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('extractClear').addEventListener('click', () => {
+  document.getElementById('extractFile').value = '';
+  document.getElementById('extractPreview').style.display = 'none';
+  document.getElementById('extractResult').textContent = 'Esperando...';
+});
+
+// ── ANALYZE ──
+
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  const f1 = document.getElementById('analyzeFile1').files[0];
+  const f2 = document.getElementById('analyzeFile2').files[0];
+  if (!f1 || !f2) return showToast('Faltan ambas imágenes', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', f1);
+  fd.append('stego', f2);
+
+  const res = await fetch(API_BASE + '/analyze', { method: 'POST', body: fd });
+  const data = await res.json();
+  const box = document.getElementById('analyzeResult');
+  box.style.display = 'block';
+  box.textContent = JSON.stringify(data, null, 2);
+  showToast(data.success ? 'Análisis completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('analyzeClear').addEventListener('click', () => {
+  document.getElementById('analyzeFile1').value = '';
+  document.getElementById('analyzeFile2').value = '';
+  document.getElementById('analyzePreview1').style.display = 'none';
+  document.getElementById('analyzePreview2').style.display = 'none';
+  document.getElementById('analyzeResult').style.display = 'none';
+});
+
+// ── CAPACITY ──
+
+document.getElementById('capacityBtn').addEventListener('click', async () => {
+  const file = document.getElementById('capacityFile').files[0];
+  const mode = document.getElementById('capacityMode').value;
+  const platform = document.getElementById('capacityPlatform').value;
+  const ecc = document.getElementById('capacityECC').value;
+  if (!file) return showToast('Falta imagen', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('mode', mode);
+  if (platform) fd.append('platform', platform);
+  if (ecc) fd.append('ecc', ecc);
+
+  const res = await fetch(API_BASE + '/capacity', { method: 'POST', body: fd });
+  const data = await res.json();
+  document.getElementById('capacityResult').textContent = JSON.stringify(data, null, 2);
+  if (data.success && data.capacity_bytes) {
+    lastCapacityBytes = data.capacity_bytes;
+  }
+  showToast(data.success ? 'Capacidad calculada' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('capacityClear').addEventListener('click', () => {
+  document.getElementById('capacityFile').value = '';
+  document.getElementById('capacityPreview').style.display = 'none';
+  document.getElementById('capacityResult').textContent = 'Esperando...';
+  lastCapacityBytes = 0;
+});
+
+// ── BENCHMARK ──
+
+document.getElementById('benchmarkBtn').addEventListener('click', async () => {
+  const file = document.getElementById('benchmarkFile').files[0];
+  const msg = document.getElementById('benchmarkMsg').value;
+  const mode = document.getElementById('benchmarkMode').value;
+  if (!file) return showToast('Falta imagen', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('message', msg);
+  fd.append('mode', mode);
+
+  const res = await fetch(API_BASE + '/benchmark', { method: 'POST', body: fd });
+  const data = await res.json();
+  document.getElementById('benchmarkResult').textContent = JSON.stringify(data, null, 2);
+  showToast(data.success ? 'Benchmark completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+});
+
+document.getElementById('benchmarkClear').addEventListener('click', () => {
+  document.getElementById('benchmarkFile').value = '';
+  document.getElementById('benchmarkPreview').style.display = 'none';
+  document.getElementById('benchmarkResult').textContent = 'Esperando...';
+});
+
+// ── PUBLISH ──
+
+function setSteps(n) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+// Mostrar credenciales según plataforma
+const CREDENTIAL_MAP = {
+  telegram:  ['TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
+  discord:   ['DISCORD_WEBHOOK_URL'],
+  imgur:     ['IMGUR_CLIENT_ID'],
+  reddit:    ['REDDIT_CLIENT_ID','REDDIT_CLIENT_SECRET','REDDIT_USERNAME','REDDIT_PASSWORD'],
+  twitter:   ['TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_TOKEN_SECRET'],
+  instagram: ['INSTAGRAM_BUSINESS_ACCOUNT_ID','META_PAGE_ACCESS_TOKEN'],
+  whatsapp:  ['WHATSAPP_BUSINESS_PHONE_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_RECIPIENT_PHONE'],
+  nostr:     ['NOSTR_PRIVATE_KEY']
+};
+
+document.getElementById('publishPlatform').addEventListener('change', function() {
+  const platform = this.value;
+  const box = document.getElementById('credentialsBox');
+  if (!platform) { box.style.display = 'none'; return; }
+
+  document.querySelectorAll('.cred-group').forEach(g => g.classList.remove('active'));
+  const group = document.querySelector('.cred-group[data-platform="' + platform + '"]');
+  if (group) {
+    group.classList.add('active');
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+  updatePublishSteps();
+});
+
+function updatePublishSteps() {
+  const file = document.getElementById('publishFile').files[0];
+  const platform = document.getElementById('publishPlatform').value;
+  let step = 1;
+  if (file) step = 2;
+  if (file && platform) step = 3;
+  if (file && platform) {
+    const inputs = document.querySelectorAll('.cred-group.active .cred-input');
+    const hasCreds = Array.from(inputs).some(i => i.value.trim() !== '');
+    if (hasCreds || inputs.length === 0) step = 4;
+  }
+  if (currentPubResult && currentPubResult.url) step = 5;
+  setSteps(step);
+}
+
+document.getElementById('publishFile').addEventListener('change', updatePublishSteps);
+document.querySelectorAll('.cred-input').forEach(i => {
+  i.addEventListener('input', updatePublishSteps);
+});
+
+function collectCredentials() {
+  const creds = {};
+  document.querySelectorAll('.cred-group.active .cred-input').forEach(input => {
+    const key = input.dataset.key;
+    const val = input.value.trim();
+    if (val) creds[key] = val;
+  });
+  return creds;
+}
+
+async function doPublish(validate = false) {
+  const file = document.getElementById('publishFile').files[0];
+  const platform = document.getElementById('publishPlatform').value;
+  const caption = document.getElementById('publishCaption').value;
+  const mode = document.getElementById('publishMode').value;
+  if (!file) return showToast('Selecciona una imagen stego', 'error');
+  if (!platform) return showToast('Selecciona una plataforma', 'error');
+
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('platform', platform);
+  if (caption) fd.append('caption', caption);
+  if (validate) fd.append('mode', mode);
+
+  // Añadir credenciales inline
+  const creds = collectCredentials();
+  if (Object.keys(creds).length > 0) {
+    fd.append('credentials', JSON.stringify(creds));
+  }
+
+  const btnId = validate ? 'publishValidateBtn' : 'publishBtn';
+  const spinId = validate ? 'validateSpinner' : 'publishSpinner';
+  document.getElementById(spinId).style.display = 'inline-block';
+  document.getElementById(btnId).disabled = true;
+
+  try {
+    const endpoint = validate ? '/publish_validate' : '/publish';
+    const res = await fetch(API_BASE + endpoint, { method: 'POST', body: fd });
+    const data = await res.json();
+
+    document.getElementById('publishResult').textContent = JSON.stringify(data, null, 2);
+
+    if (data.url) {
+      currentPubResult = data;
+      const urlBox = document.getElementById('publishUrl');
+      urlBox.textContent = data.url;
+      urlBox.onclick = () => { navigator.clipboard.writeText(data.url); showToast('URL copiada'); };
+      document.getElementById('publishUrlBox').style.display = 'block';
+      showToast('Publicado correctamente', 'success');
+    } else if (data.error) {
+      showToast(data.error, 'error');
+    }
+
+    if (validate && data.e2e) {
+      const e2e = data.e2e;
+      const box = document.getElementById('e2eResult');
+      const success = e2e.success;
+      box.className = 'e2e-result ' + (success ? 'e2e-success' : 'e2e-fail');
+      box.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+          <span class="status-badge ${success ? 'status-ok' : 'status-err'}">
+            ${success ? '✅ E2E Exitoso' : '❌ E2E Fallido'}
+          </span>
+        </div>
+        <div class="metric"><span>Mensaje extraído:</span><span class="value">${e2e.extracted_message || 'N/A'}</span></div>
+        <div class="metric"><span>Tamaño original:</span><span class="value">${e2e.original_size || 'N/A'}</span></div>
+        <div class="metric"><span>Tamaño descargado:</span><span class="value">${e2e.downloaded_size || 'N/A'}</span></div>
+        <div class="metric"><span>PSNR:</span><span class="value">${e2e.psnr || 'N/A'}</span></div>
+        <div class="metric"><span>Hash original:</span><span class="value" style="font-size:0.7rem">${e2e.original_hash || 'N/A'}</span></div>
+        <div class="metric"><span>Hash descargado:</span><span class="value" style="font-size:0.7rem">${e2e.downloaded_hash || 'N/A'}</span></div>
+      `;
+      document.getElementById('e2eResultBox').style.display = 'block';
+      showToast(success ? 'Validación E2E exitosa' : 'Validación E2E fallida', success ? 'success' : 'error');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    document.getElementById(spinId).style.display = 'none';
+    document.getElementById(btnId).disabled = false;
+    updatePublishSteps();
+  }
+}
+
+document.getElementById('publishBtn').addEventListener('click', () => doPublish(false));
+document.getElementById('publishValidateBtn').addEventListener('click', () => doPublish(true));
+document.getElementById('publishClear').addEventListener('click', () => {
+  document.getElementById('publishFile').value = '';
+  document.getElementById('publishPreview').style.display = 'none';
+  document.getElementById('publishPlatform').value = '';
+  document.getElementById('publishCaption').value = '';
+  document.getElementById('publishResult').textContent = 'Esperando...';
+  document.getElementById('publishUrlBox').style.display = 'none';
+  document.getElementById('e2eResultBox').style.display = 'none';
+  document.getElementById('credentialsBox').style.display = 'none';
+  document.querySelectorAll('.cred-input').forEach(i => i.value = '');
+  currentPubResult = null;
+  setSteps(1);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchTab('embed'); }
+  if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchTab('extract'); }
+  if (e.ctrlKey && e.key === '3') { e.preventDefault(); switchTab('analyze'); }
+  if (e.ctrlKey && e.key === '4') { e.preventDefault(); switchTab('capacity'); }
+  if (e.ctrlKey && e.key === '5') { e.preventDefault(); switchTab('benchmark'); }
+  if (e.ctrlKey && e.key === '6') { e.preventDefault(); switchTab('publish'); }
+});
+
+setSteps(1);
+
+// ── CREDENTIALS MANAGEMENT ──
+
+const CRED_FIELDS = {
+  telegram:   [
+    {key:"bot_token", label:"Bot Token", type:"password", placeholder:"123456:ABC-DEF..."},
+    {key:"chat_id", label:"Chat ID", type:"text", placeholder:"@channel o 123456789"},
+  ],
+  discord:    [
+    {key:"webhook_url", label:"Webhook URL", type:"password", placeholder:"https://discord.com/api/webhooks/..."},
+  ],
+  imgur:      [
+    {key:"client_id", label:"Client ID", type:"password", placeholder:"Tu Client ID de Imgur"},
+  ],
+  reddit:     [
+    {key:"client_id", label:"Client ID", type:"text", placeholder:"App Client ID"},
+    {key:"client_secret", label:"Client Secret", type:"password", placeholder:"App Client Secret"},
+    {key:"username", label:"Username", type:"text", placeholder:"Tu usuario Reddit"},
+    {key:"password", label:"Password", type:"password", placeholder:"Tu contraseña Reddit"},
+  ],
+  twitter:    [
+    {key:"api_key", label:"API Key", type:"text", placeholder:"Consumer API Key"},
+    {key:"api_secret", label:"API Secret", type:"password", placeholder:"Consumer API Secret"},
+    {key:"access_token", label:"Access Token", type:"text", placeholder:"Access Token"},
+    {key:"access_token_secret", label:"Access Token Secret", type:"password", placeholder:"Access Token Secret"},
+  ],
+  instagram:  [
+    {key:"business_account_id", label:"Business Account ID", type:"text", placeholder:"17841400000000000"},
+    {key:"page_access_token", label:"Meta Page Access Token", type:"password", placeholder:"EAA..."},
+  ],
+  whatsapp:   [
+    {key:"business_phone_id", label:"Business Phone ID", type:"text", placeholder:"123456789012345"},
+    {key:"access_token", label:"Access Token", type:"password", placeholder:"EAA..."},
+    {key:"recipient_phone", label:"Recipient Phone", type:"text", placeholder:"+34123456789"},
+  ],
+  nostr:      [
+    {key:"private_key", label:"Private Key (nsec)", type:"password", placeholder:"nsec1..."},
+    {key:"relay_url", label:"Relay URL", type:"text", placeholder:"wss://relay.damus.io"},
+  ],
+};
+
+document.getElementById('loadCredFields').addEventListener('click', () => {
+  const platform = document.getElementById('credPlatform').value;
+  const box = document.getElementById('credFieldsBox');
+  if (!platform) return showToast('Selecciona una plataforma', 'error');
+
+  const fields = CRED_FIELDS[platform] || [];
+  let html = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">';
+  fields.forEach(f => {
+    html += `
+      <div>
+        <label>${f.label}</label>
+        <input type="${f.type}" id="cred_${f.key}" placeholder="${f.placeholder}" style="font-family:var(--mono)">
+      </div>`;
+  });
+  html += '</div>';
+  html += `<div style="margin-top:10px; display:flex; gap:8px">
+    <button class="btn btn-success" id="saveCredsBtn">💾 Guardar credenciales</button>
+    <button class="btn btn-secondary" id="cancelCredsBtn">Cancelar</button>
+  </div>`;
+  box.innerHTML = html;
+  box.style.display = 'block';
+
+  document.getElementById('saveCredsBtn').addEventListener('click', async () => {
+    const credentials = {};
+    fields.forEach(f => {
+      const val = document.getElementById('cred_' + f.key).value.trim();
+      if (val) credentials[f.key] = val;
+    });
+
+    const res = await fetch(API_BASE + '/configure_platform', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({platform, credentials}),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Credenciales guardadas', 'success');
+      box.style.display = 'none';
+      loadSavedCredentials();
+      loadPlatformStatus();
+    } else {
+      showToast(data.error || 'Error guardando credenciales', 'error');
+    }
+  });
+
+  document.getElementById('cancelCredsBtn').addEventListener('click', () => {
+    box.style.display = 'none';
+  });
+});
+
+document.getElementById('clearAllCreds').addEventListener('click', async () => {
+  const res = await fetch(API_BASE + '/clear_credentials', {method: 'POST'});
+  const data = await res.json();
+  if (data.success) {
+    showToast('Credenciales eliminadas de memoria', 'success');
+    loadSavedCredentials();
+    loadPlatformStatus();
+  }
+});
+
+async function loadSavedCredentials() {
+  try {
+    const res = await fetch(API_BASE + '/platform_config');
+    const data = await res.json();
+    const box = document.getElementById('credSavedList');
+    const entries = Object.entries(data).filter(([_, v]) => v.configured);
+    if (entries.length === 0) {
+      box.innerHTML = 'Ninguna configurada';
+      return;
+    }
+    let html = '';
+    entries.forEach(([name, info]) => {
+      const source = info.source || 'memory';
+      html += `<div class="platform-card" style="margin-bottom:6px">
+        <div class="platform-info">
+          <span class="platform-icon">🔑</span>
+          <div>
+            <div class="platform-name">${name.charAt(0).toUpperCase() + name.slice(1)}</div>
+            <div class="platform-desc">${info.fields ? info.fields.join(', ') : ''} (${source})</div>
+          </div>
+        </div>
+        <span class="status-badge status-ok">✅ Activo</span>
+      </div>`;
+    });
+    box.innerHTML = html;
+  } catch (e) {
+    document.getElementById('credSavedList').innerHTML = 'Error cargando: ' + e.message;
+  }
+}
+
+// Cargar al iniciar
+loadSavedCredentials();
+
+</script>
+</body>
+</html>

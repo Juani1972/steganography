@@ -21,7 +21,7 @@ MAX_MESSAGE_BYTES = 50 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 16384
 MAX_ZLIB_RATIO = 100
 MIN_DELTA = 0.5
-MAX_DELTA = 50.0
+MAX_DELTA = 100.0
 MAX_EXTRACT_ITERATIONS = 30
 SUPPORTED_VERSIONS = {2, 3}
 VALID_ECC_VALUES = {0, 16, 24, 32, 40, 48, 64, 96}
@@ -172,7 +172,7 @@ class StegoEngine:
             logger.debug(f"RS decode failed: {e}")
             return None
 
-    def _embed_sync_markers(self, image: np.ndarray, strength: float = 15.0) -> np.ndarray:
+    def _embed_sync_markers(self, image: np.ndarray, strength: float = 40.0) -> np.ndarray:
         result = image.copy()
         h, w = result.shape
         ms = 8
@@ -184,7 +184,7 @@ class StegoEngine:
             result[cy:cy+ms, cx:cx+ms] = np.clip(self._idct2(dct_block), 0, 255)
         return result
 
-    def _detect_sync_markers(self, image: np.ndarray, strength: float = 15.0) -> Tuple[bool, float]:
+    def _detect_sync_markers(self, image: np.ndarray, strength: float = 40.0) -> Tuple[bool, float]:
         h, w = image.shape
         ms = 8
         corners = [(0, 0), (0, w - ms), (h - ms, 0), (h - ms, w - ms)]
@@ -199,7 +199,7 @@ class StegoEngine:
         if not corrs:
             return False, 1.0
         avg = np.mean(corrs)
-        return avg > 0.3, avg
+        return avg > 0.15, avg
 
     def _fortress_embed(self, image: np.ndarray, message_bits: np.ndarray, delta: float = 8.0) -> np.ndarray:
         h, w = image.shape
@@ -213,7 +213,6 @@ class StegoEngine:
             for j in range(w_blocks):
                 dct_blocks[i, j] = self._dct2(blocks[i, j])
         dc_coeffs = dct_blocks[:, :, 0, 0].copy()
-        mask = self._watson_mask(dct_blocks)[:, :, 0, 0]
         sb_h, sb_w = h_blocks // 2, w_blocks // 2
         capacity = sb_h * sb_w
         if len(message_bits) > capacity:
@@ -223,15 +222,13 @@ class StegoEngine:
             sb_j = idx % sb_w
             dc_window = dc_coeffs[sb_i*2:(sb_i+1)*2, sb_j*2:(sb_j+1)*2]
             dc_avg = np.mean(dc_window)
-            mask_avg = np.mean(mask[sb_i*2:(sb_i+1)*2, sb_j*2:(sb_j+1)*2])
-            adaptive_delta = delta * mask_avg
             bit = message_bits[idx]
-            q = int(np.round(dc_avg / adaptive_delta))
+            q = int(np.round(dc_avg / delta))
             if bit == 1:
                 if q % 2 == 0: q += 1
             else:
                 if q % 2 == 1: q += 1
-            target_avg = q * adaptive_delta
+            target_avg = q * delta
             diff = target_avg - dc_avg
             for di in range(2):
                 for dj in range(2):
@@ -285,7 +282,6 @@ class StegoEngine:
         for i in range(h_blocks):
             for j in range(w_blocks):
                 dct_blocks[i, j] = self._dct2(blocks[i, j])
-        mask = self._watson_mask(dct_blocks)
         bit_idx = 0
         for i in range(h_blocks):
             for j in range(w_blocks):
@@ -294,15 +290,13 @@ class StegoEngine:
                         break
                     ci, cj = pos
                     coeff = dct_blocks[i, j, ci, cj]
-                    m = mask[i, j, ci, cj]
-                    d = delta * m
                     bit = message_bits[bit_idx]
-                    q = np.round((coeff + d/2 * (1 if bit else -1)) / d)
+                    q = int(np.round(coeff / delta))
                     if bit == 1:
-                        if int(q) % 2 == 0: q += 1
+                        if q % 2 == 0: q += 1
                     else:
-                        if int(q) % 2 == 1: q += 1
-                    dct_blocks[i, j, ci, cj] = q * d - d/2 * (1 if bit else -1)
+                        if q % 2 == 1: q += 1
+                    dct_blocks[i, j, ci, cj] = q * delta
                     bit_idx += 1
         result = np.zeros_like(image)
         for i in range(h_blocks):
@@ -485,7 +479,9 @@ class StegoEngine:
         from pathlib import Path
         p = Path(path).resolve()
 
-        dangerous = {"..", "~", "$", "`", "|", ";", "&", "<", ">"}
+        # FIX: Removed  from dangerous set because Windows 8.3 short names
+        # (e.g. C:\Users\LAURAI~1\...) are legitimate and not an attack vector.
+        dangerous = {"..", "$", "`", "|", ";", "&", "<", ">"}
         path_str = str(path)
         for d in dangerous:
             if d in path_str:
@@ -577,15 +573,15 @@ class StegoEngine:
             y_arr = np.array(y, dtype=np.float32)
 
             if mode == StegoMode.FORTRESS:
-                y_embedded = self._fortress_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 8.0)
+                y_embedded = self._fortress_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 24.0)
             elif mode == StegoMode.ARMOR:
-                y_embedded = self._armor_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 4.0)
+                y_embedded = self._armor_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 16.0)
             else:
                 try:
-                    y_embedded = self._fortress_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 8.0)
+                    y_embedded = self._fortress_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 24.0)
                     mode = StegoMode.FORTRESS
                 except ValueError:
-                    y_embedded = self._armor_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 4.0)
+                    y_embedded = self._armor_embed(y_arr, message_bits, delta=effective_delta if effective_delta else 16.0)
                     mode = StegoMode.ARMOR
 
             if mode == StegoMode.FORTRESS:
@@ -622,7 +618,7 @@ class StegoEngine:
                 result.save(output_path, "PNG", optimize=True)
                 output_format = "PNG"
 
-        delta_used = effective_delta if effective_delta else (8.0 if mode == StegoMode.FORTRESS else (4.0 if mode == StegoMode.ARMOR else 0.0))
+        delta_used = effective_delta if effective_delta else (24.0 if mode == StegoMode.FORTRESS else (16.0 if mode == StegoMode.ARMOR else 0.0))
         ecc_used = effective_ecc if effective_ecc is not None else (
             self.PLATFORM_PROFILES.get(target_platform, {}).get("ecc", 0) if target_platform else (
                 96 if mode == StegoMode.FORTRESS else (48 if mode == StegoMode.ARMOR else 0)
@@ -669,10 +665,10 @@ class StegoEngine:
             if mode is None:
                 continue
             if mode == StegoMode.FORTRESS:
-                base_delta = getattr(self, "delta_override", None) or 8.0
+                base_delta = getattr(self, "delta_override", None) or 24.0
                 deltas = [base_delta, 2.0, 2.5, 3.5, 4.0, 5.0, 6.0, 7.0, 10.0, 15.0]
             elif mode == StegoMode.ARMOR:
-                base_delta = getattr(self, "delta_override", None) or 4.0
+                base_delta = getattr(self, "delta_override", None) or 16.0
                 deltas = [base_delta, 2.0, 2.5, 3.5, 5.0, 6.0, 7.0, 8.0, 10.0, 15.0]
             else:
                 deltas = [0.0]
@@ -898,8 +894,10 @@ class StegoEngine:
 
         if not coarse_results:
             shutil.rmtree(tmpdir)
+            # FIX: Added candidates_tested to avoid KeyError in tests
             return {"delta": 8.0, "mode": StegoMode.ARMOR, "ecc": 48, "success": False,
-                    "score": 0, "meta": None, "extracted": None, "phase": "coarse_failed"}
+                    "score": 0, "meta": None, "extracted": None, "phase": "coarse_failed",
+                    "candidates_tested": 0}
 
         coarse_results.sort(key=lambda x: x["score"], reverse=True)
         top_candidates = coarse_results[:3]
@@ -956,8 +954,10 @@ class StegoEngine:
 
         shutil.rmtree(tmpdir)
         if best is None:
+            # FIX: Added candidates_tested to avoid KeyError in tests
             return {"delta": 8.0, "mode": StegoMode.ARMOR, "ecc": 48, "success": False,
-                    "score": 0, "meta": None, "extracted": None, "phase": "no_candidates"}
+                    "score": 0, "meta": None, "extracted": None, "phase": "no_candidates",
+                    "candidates_tested": len(all_results)}
 
         return {
             "delta": best["delta"],
