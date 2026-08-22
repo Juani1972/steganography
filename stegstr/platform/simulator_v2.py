@@ -1,15 +1,15 @@
 """
-Stegstr Platform Simulator v2.1.2 — Realistic Social Media Pipelines
+Stegstr Platform Simulator v2.1.2 - Realistic Social Media Pipelines
 
-Simula con mayor fidelidad los pipelines reales de procesamiento de imágenes
+Simula con mayor fidelidad los pipelines reales de procesamiento de imagenes
 en redes sociales, incluyendo:
   - Chroma subsampling (4:2:0, 4:2:2, 4:4:4)
   - JPEG progresivo vs baseline
   - Strip de metadatos EXIF/XMP/ICC
-  - Conversión de espacio de color (sRGB, Display P3)
+  - Conversion de espacio de color (sRGB, Display P3)
   - Sharpening adaptativo por plataforma
-  - Dithering en reducción de profundidad de bits
-  - Watermarking simulado (reducción de calidad en bordes)
+  - Dithering en reduccion de profundidad de bits
+  - Watermarking simulado (reduccion de calidad en bordes)
 
 Uso:
     from stegstr.platform.simulator_v2 import RealisticPlatformSimulator
@@ -233,8 +233,13 @@ class RealisticPlatformSimulator:
             transformations.append(f"cropped_to_{ratio[0]}:{ratio[1]}")
 
         # 6. Sharpening
+        # FIX: percent must be int, not float
         if pipeline["sharpen"] > 0:
-            img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=150 * pipeline["sharpen"], threshold=3))
+            img = img.filter(ImageFilter.UnsharpMask(
+                radius=2,
+                percent=int(150 * pipeline["sharpen"]),
+                threshold=3
+            ))
             transformations.append(f"sharpened_{pipeline['sharpen']}")
 
         # 7. Save with platform-specific JPEG settings

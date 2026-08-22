@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stegstr Widget v2.2.0 — Explorador Visual de Esteganografía</title>
+<title>Stegstr Widget v2.2.0 - Explorador Visual de Esteganografia</title>
 <style>
-/* ── Reset & Base ── */
+/*  Reset & Base  */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #0b0f14; --surface: #111820; --surface-hover: #17202a;
@@ -23,10 +23,10 @@ body {
   font-family: var(--font); background: var(--bg); color: var(--text);
   min-height: 100vh; line-height: 1.6;
 }
-.container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
 
-/* ── Header ── */
-header { text-align: center; margin-bottom: 28px; }
+/*  Header  */
+header { text-align: center; margin-bottom: 28px; position: relative; }
 header h1 {
   font-size: 2rem; font-weight: 700; color: var(--text-bright);
   letter-spacing: -0.5px; display: flex; align-items: center;
@@ -35,7 +35,18 @@ header h1 {
 header h1 span { color: var(--accent); font-weight: 300; font-size: 1.1rem; }
 header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 
-/* ── Tabs ── */
+/*  Backend Status Badge  */
+.backend-status {
+  position: absolute; top: 0; right: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600;
+  border: 1px solid var(--border);
+}
+.backend-online { background: rgba(81,207,102,0.12); color: var(--accent2); border-color: rgba(81,207,102,0.3); }
+.backend-offline { background: rgba(255,107,107,0.12); color: var(--danger); border-color: rgba(255,107,107,0.3); }
+.backend-checking { background: rgba(255,212,59,0.12); color: var(--warning); border-color: rgba(255,212,59,0.3); }
+
+/*  Tabs  */
 .tabs {
   display: flex; gap: 4px; margin-bottom: 20px;
   border-bottom: 1px solid var(--border); padding-bottom: 2px;
@@ -44,8 +55,8 @@ header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
   background: transparent; border: none; border-bottom: 2px solid transparent;
-  color: var(--text-dim); padding: 10px 16px; cursor: pointer;
-  font-size: 0.85rem; font-weight: 500; white-space: nowrap;
+  color: var(--text-dim); padding: 10px 14px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 500; white-space: nowrap;
   transition: all 0.2s; display: flex; align-items: center; gap: 6px;
 }
 .tab:hover { color: var(--text); }
@@ -53,12 +64,14 @@ header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
   color: var(--accent); border-bottom-color: var(--accent);
   background: linear-gradient(to top, var(--accent-glow), transparent);
 }
+.tab:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── Panels ── */
-.panel { display: none; }
+/*  Panels  */
+.panel { display: none; animation: fadeIn 0.25s ease; }
 .panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Cards ── */
+/*  Cards  */
 .card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
@@ -68,12 +81,12 @@ header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-bright); }
 .card h3 { font-size: 0.95rem; font-weight: 600; margin: 16px 0 8px; color: var(--text-bright); }
 
-/* ── Layout ── */
+/*  Layout  */
 .row { display: flex; gap: 16px; flex-wrap: wrap; }
 .col { flex: 1; min-width: 260px; }
 @media (max-width: 700px) { .row { flex-direction: column; } }
 
-/* ── Form Elements ── */
+/*  Form Elements  */
 label { display: block; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 4px; font-weight: 500; }
 input[type="text"], input[type="number"], input[type="password"], textarea, select {
   width: 100%; background: var(--bg); border: 1px solid var(--border);
@@ -85,7 +98,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 textarea { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: 0.85rem; }
 select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a8899' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
 
-/* ── Buttons ── */
+/*  Buttons  */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--accent); color: #0b0f14; border: none;
@@ -104,12 +117,12 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 .btn-secondary:hover { border-color: var(--border-hover); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-/* ── Dropzone ── */
+/*  Dropzone  */
 .dropzone {
   border: 2px dashed var(--border); border-radius: var(--radius);
   padding: 32px 20px; text-align: center; color: var(--text-dim);
   cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
-  background: var(--bg);
+  background: var(--bg); position: relative; overflow: hidden;
 }
 .dropzone:hover, .dropzone.dragover {
   border-color: var(--accent); color: var(--accent);
@@ -117,15 +130,19 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 }
 .dropzone input { display: none; }
 .dropzone .icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+.dropzone .file-name {
+  font-size: 0.8rem; color: var(--accent); margin-top: 6px;
+  font-family: var(--mono); word-break: break-all;
+}
 
-/* ── Preview ── */
+/*  Preview  */
 .preview-img {
   max-width: 100%; max-height: 280px; border-radius: 6px;
   border: 1px solid var(--border); display: none; margin-top: 8px;
   box-shadow: var(--shadow);
 }
 
-/* ── Result Box ── */
+/*  Result Box  */
 .result-box {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 6px; padding: 14px; margin-top: 12px;
@@ -136,12 +153,35 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 .result-box::-webkit-scrollbar { width: 6px; }
 .result-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* ── Metric Row ── */
+/*  Metric Cards  */
+.metric-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px; margin-top: 12px;
+}
+.metric-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; text-align: center;
+  transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: var(--border-hover); }
+.metric-card .metric-label {
+  font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.metric-card .metric-value {
+  font-size: 1.3rem; font-weight: 700; color: var(--accent);
+  font-family: var(--mono);
+}
+.metric-card .metric-unit {
+  font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;
+}
+
+/*  Metric Row  */
 .metric { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .metric:last-child { border-bottom: none; }
 .metric .value { font-family: var(--mono); color: var(--accent); font-weight: 500; }
 
-/* ── Status Badge ── */
+/*  Status Badge  */
 .status-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 12px; font-size: 0.72rem;
@@ -152,7 +192,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 .status-warn { background: rgba(255,212,59,0.12); color: var(--warning); }
 .status-info { background: rgba(77,171,247,0.12); color: var(--accent); }
 
-/* ── Platform Card ── */
+/*  Platform Card  */
 .platform-card {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
@@ -165,7 +205,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 .platform-card .platform-name { font-weight: 600; font-size: 0.9rem; color: var(--text-bright); }
 .platform-card .platform-desc { font-size: 0.75rem; color: var(--text-dim); }
 
-/* ── Publish Steps ── */
+/*  Publish Steps  */
 .publish-steps {
   display: flex; gap: 8px; margin-bottom: 16px;
 }
@@ -181,7 +221,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
   display: block; font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;
 }
 
-/* ── URL Box ── */
+/*  URL Box  */
 .url-box {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 6px; padding: 10px 12px; font-family: var(--mono);
@@ -190,7 +230,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 }
 .url-box:hover { background: var(--accent-glow); border-color: var(--accent); }
 
-/* ── E2E Result ── */
+/*  E2E Result  */
 .e2e-result {
   margin-top: 12px; padding: 12px; border-radius: 8px;
   border: 1px solid var(--border); background: var(--bg);
@@ -198,7 +238,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 .e2e-success { border-color: var(--accent2) !important; }
 .e2e-fail { border-color: var(--danger) !important; }
 
-/* ── Spinner ── */
+/*  Spinner  */
 .spinner {
   width: 16px; height: 16px; border: 2px solid var(--border);
   border-top-color: var(--accent); border-radius: 50%;
@@ -206,7 +246,7 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Progress Bar ── */
+/*  Progress Bar  */
 .progress-bar {
   width: 100%; height: 4px; background: var(--border);
   border-radius: 2px; overflow: hidden; margin-top: 8px;
@@ -216,12 +256,65 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
   transition: width 0.3s; width: 0%;
 }
 
-/* ── Compare Grid ── */
+/*  Compare Grid  */
 .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .compare-grid img { width: 100%; border-radius: 6px; border: 1px solid var(--border); }
 @media (max-width: 700px) { .compare-grid { grid-template-columns: 1fr; } }
 
-/* ── Toast ── */
+/*  Image Comparison Slider  */
+.img-compare {
+  position: relative; width: 100%; max-height: 300px; overflow: hidden;
+  border-radius: 6px; border: 1px solid var(--border); margin-top: 8px;
+}
+.img-compare img { width: 100%; display: block; }
+.img-compare .overlay {
+  position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+  overflow: hidden; border-right: 2px solid var(--accent);
+}
+.img-compare .overlay img { width: 200%; max-width: none; }
+.img-compare .slider-handle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 32px; height: 32px; background: var(--accent);
+  border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; cursor: ew-resize; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+.img-compare .slider-handle::after {
+  content: ""; color: #0b0f14; font-weight: 700; font-size: 0.8rem;
+}
+
+/*  Heatmap Canvas  */
+.heatmap-container {
+  margin-top: 12px; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg);
+}
+.heatmap-container canvas { display: block; width: 100%; }
+
+/*  Chart Canvas  */
+.chart-container {
+  margin-top: 12px; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg);
+  padding: 12px;
+}
+.chart-container canvas { display: block; width: 100%; max-height: 280px; }
+
+/*  Mode Cards  */
+.mode-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px; margin: 12px 0;
+}
+.mode-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.mode-card:hover { border-color: var(--accent); background: var(--accent-glow); }
+.mode-card.selected { border-color: var(--accent); background: rgba(77,171,247,0.1); }
+.mode-card .mode-icon { font-size: 1.5rem; margin-bottom: 6px; }
+.mode-card .mode-name { font-weight: 600; font-size: 0.85rem; color: var(--text-bright); }
+.mode-card .mode-desc { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; }
+
+/*  Toast  */
 .toast {
   position: fixed; bottom: 24px; right: 24px;
   background: var(--surface); border: 1px solid var(--border);
@@ -232,69 +325,173 @@ select { cursor: pointer; appearance: none; background-image: url("data:image/sv
 }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-/* ── Footer ── */
+/*  Footer  */
 footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem; }
 footer a { color: var(--accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
-/* ── Scrollbar ── */
+/*  Scrollbar  */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
-/* ── Credential Fields ── */
+/*  Credential Fields  */
 .cred-group { display: none; }
 .cred-group.active { display: block; }
 .cred-field { margin-bottom: 10px; }
 .cred-hint { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+
+/*  Demo Banner  */
+.demo-banner {
+  background: linear-gradient(90deg, rgba(255,212,59,0.1), rgba(255,212,59,0.05));
+  border: 1px solid rgba(255,212,59,0.3); border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 16px; display: flex;
+  align-items: center; gap: 10px; font-size: 0.85rem; color: var(--warning);
+}
+
+/*  Loading Overlay  */
+.loading-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(11,15,20,0.85); display: none;
+  align-items: center; justify-content: center; z-index: 2000;
+  flex-direction: column; gap: 16px;
+}
+.loading-overlay.active { display: flex; }
+.loading-overlay .loading-text { color: var(--text-dim); font-size: 0.9rem; }
+
+/*  History Panel  */
+.history-panel {
+  position: fixed; top: 0; right: 0; width: 320px; height: 100%;
+  background: var(--surface); border-left: 1px solid var(--border);
+  transform: translateX(100%); transition: transform 0.3s ease;
+  z-index: 1500; padding: 20px; overflow-y: auto;
+}
+.history-panel.open { transform: translateX(0); }
+.history-panel h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--text-bright); }
+.history-item {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px; margin-bottom: 8px;
+  font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+}
+.history-item:hover { border-color: var(--accent); }
+.history-item .history-time { color: var(--text-dim); font-size: 0.7rem; }
+.history-item .history-action { color: var(--accent); font-weight: 600; }
+
+/*  Toggle Switch  */
+.toggle-switch {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.toggle-switch input { display: none; }
+.toggle-slider {
+  width: 36px; height: 20px; background: var(--border); border-radius: 10px;
+  position: relative; transition: background 0.2s;
+}
+.toggle-slider::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; background: var(--text-bright);
+  border-radius: 50%; transition: transform 0.2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::after { transform: translateX(16px); }
+
+/*  Responsive  */
+@media (max-width: 700px) {
+  .container { padding: 16px 10px; }
+  header h1 { font-size: 1.5rem; }
+  .backend-status { position: static; margin-bottom: 12px; justify-content: center; }
+  .tabs { gap: 2px; }
+  .tab { padding: 8px 10px; font-size: 0.75rem; }
+  .publish-steps { flex-wrap: wrap; }
+  .publish-step { flex: 1 1 30%; }
+  .history-panel { width: 100%; }
+}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>🔐 Stegstr Widget <span>v2.2.0</span></h1>
-    <p>Explorador visual de esteganografía LSB avanzada con publicación real a redes sociales</p>
+    <div class="backend-status backend-checking" id="backendStatus">
+      <span class="spinner" style="width:12px;height:12px;border-width:1.5px"></span>
+      Verificando backend...
+    </div>
+    <h1> Stegstr Widget <span>v2.2.0</span></h1>
+    <p>Explorador visual de esteganografia LSB avanzada con publicacion real a redes sociales</p>
   </header>
 
+  <div class="demo-banner" id="demoBanner" style="display:none">
+     <strong>Modo Demo Offline</strong> - El backend no responde. Algunas funciones estan desactivadas.
+    <span style="margin-left:auto; font-size:0.75rem; color:var(--text-dim)">
+      Inicia: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">python -m stegstr.gui.widget_server</code>
+    </span>
+  </div>
+
   <nav class="tabs">
-    <button class="tab active" data-tab="embed">🔒 Ocultar</button>
-    <button class="tab" data-tab="extract">🔓 Extraer</button>
-    <button class="tab" data-tab="analyze">🔍 Analizar</button>
-    <button class="tab" data-tab="capacity">📊 Capacidad</button>
-    <button class="tab" data-tab="benchmark">⚡ Benchmark</button>
-    <button class="tab" data-tab="publish">📡 Publicar</button>
+    <button class="tab active" data-tab="embed"> Ocultar</button>
+    <button class="tab" data-tab="extract"> Extraer</button>
+    <button class="tab" data-tab="analyze"> Analizar</button>
+    <button class="tab" data-tab="capacity"> Capacidad</button>
+    <button class="tab" data-tab="benchmark"> Benchmark</button>
+    <button class="tab" data-tab="simulate"> Simular</button>
+    <button class="tab" data-tab="publish"> Publicar</button>
+    <button class="tab btn-secondary" id="historyToggle" style="margin-left:auto;background:transparent;border-bottom:none" title="Historial"></button>
   </nav>
 
-  <!-- ═══════ EMBED ═══════ -->
+  <!--  EMBED  -->
   <div class="panel active" id="embed">
     <div class="card">
-      <h2>🔒 Ocultar mensaje en imagen</h2>
+      <h2> Ocultar mensaje en imagen</h2>
       <div class="row">
         <div class="col">
           <label>Imagen portadora</label>
           <div class="dropzone" id="embedDrop">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen o haz clic para seleccionar</div>
+            <div class="file-name" id="embedFileName"></div>
             <input type="file" id="embedFile" accept="image/*">
           </div>
           <img class="preview-img" id="embedPreview">
 
           <label style="margin-top:12px">Mensaje</label>
           <textarea id="embedMsg" placeholder="Escribe tu mensaje secreto..."></textarea>
+          <div style="font-size:0.75rem; color:var(--text-dim); margin-top:4px">
+            <span id="embedMsgBytes">0</span> bytes
+            <span id="embedMsgWarn" style="color:var(--danger); display:none">  Mensaje muy largo</span>
+          </div>
 
-          <label style="margin-top:8px">Modo de estego</label>
-          <select id="embedMode">
-            <option value="HYBRID" selected>HYBRID (auto-selección)</option>
-            <option value="FORTRESS">FORTRESS (máxima robustez)</option>
-            <option value="ARMOR">ARMOR (robustez + capacidad)</option>
-            <option value="GHOST">GHOST (máxima capacidad PNG)</option>
-            <option value="PHANTOM">PHANTOM (anti-detección LSB-M)</option>
-          </select>
+          <label style="margin-top:12px">Modo de estego</label>
+          <div class="mode-cards" id="embedModeCards">
+            <div class="mode-card selected" data-mode="HYBRID">
+              <div class="mode-icon"></div>
+              <div class="mode-name">HYBRID</div>
+              <div class="mode-desc">Auto-seleccion inteligente</div>
+            </div>
+            <div class="mode-card" data-mode="FORTRESS">
+              <div class="mode-icon"></div>
+              <div class="mode-name">FORTRESS</div>
+              <div class="mode-desc">Maxima robustez</div>
+            </div>
+            <div class="mode-card" data-mode="ARMOR">
+              <div class="mode-icon"></div>
+              <div class="mode-name">ARMOR</div>
+              <div class="mode-desc">Robustez + capacidad</div>
+            </div>
+            <div class="mode-card" data-mode="GHOST">
+              <div class="mode-icon"></div>
+              <div class="mode-name">GHOST</div>
+              <div class="mode-desc">Maxima capacidad PNG</div>
+            </div>
+            <div class="mode-card" data-mode="PHANTOM">
+              <div class="mode-icon"></div>
+              <div class="mode-name">PHANTOM</div>
+              <div class="mode-desc">Anti-deteccion LSB-M</div>
+            </div>
+          </div>
+          <input type="hidden" id="embedMode" value="HYBRID">
 
           <label style="margin-top:8px">Plataforma objetivo (para auto-tune)</label>
           <select id="embedPlatform">
-            <option value="">Ninguna (sin simulación)</option>
+            <option value="">Ninguna (sin simulacion)</option>
             <option value="telegram_photo">Telegram Foto</option>
             <option value="telegram_file">Telegram Archivo</option>
             <option value="discord">Discord</option>
@@ -305,42 +502,81 @@ footer a:hover { text-decoration: underline; }
             <option value="reddit">Reddit</option>
           </select>
 
-          <label style="margin-top:8px">Contraseña (opcional)</label>
-          <input type="text" id="embedPassword" placeholder="Deja vacío para sin contraseña">
+          <label style="margin-top:8px">Contrasena (opcional)</label>
+          <input type="password" id="embedPassword" placeholder="Deja vacio para sin contrasena">
 
           <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-            <label style="margin:0; display:flex; align-items:center; gap:4px; cursor:pointer;">
-              <input type="checkbox" id="embedAutotune" style="width:auto">
-              Auto-tune para plataforma
+            <label class="toggle-switch" style="margin:0">
+              <input type="checkbox" id="embedAutotune">
+              <span class="toggle-slider"></span>
+              <span style="font-size:0.8rem">Auto-tune para plataforma</span>
             </label>
           </div>
 
           <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn btn-success" id="embedBtn">🚀 Ocultar</button>
+            <button class="btn btn-success" id="embedBtn">
+              <span id="embedSpinner" style="display:none"><span class="spinner"></span></span>
+               Ocultar
+            </button>
             <button class="btn btn-secondary" id="embedClear">Limpiar</button>
           </div>
         </div>
         <div class="col">
           <label>Resultado</label>
           <div class="result-box" id="embedResult">Esperando...</div>
-          <div id="embedDownload" style="margin-top:8px; display:none">
-            <a class="btn" id="embedLink" download="stego.png">⬇️ Descargar imagen stego</a>
+
+          <div class="metric-grid" id="embedMetrics" style="display:none">
+            <div class="metric-card">
+              <div class="metric-label">Modo</div>
+              <div class="metric-value" id="embedMetricMode">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Capacidad</div>
+              <div class="metric-value" id="embedMetricCap">-</div>
+              <div class="metric-unit">bits</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">PSNR</div>
+              <div class="metric-value" id="embedMetricPSNR">-</div>
+              <div class="metric-unit">dB</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Mensaje</div>
+              <div class="metric-value" id="embedMetricMsg">-</div>
+              <div class="metric-unit">bytes</div>
+            </div>
+          </div>
+
+          <div id="embedDownload" style="margin-top:12px; display:none">
+            <a class="btn" id="embedLink" download="stego.png"> Descargar imagen stego</a>
+            <button class="btn btn-secondary" id="embedCopyJson" style="margin-left:8px"> Copiar JSON</button>
+            <button class="btn btn-warning" id="embedExtractDirect" style="margin-left:8px"> Extraer de esta imagen</button>
+          </div>
+          <div id="embedDirectExtractResult" style="margin-top:12px; display:none">
+            <label>Resultado extraccion directa</label>
+            <div class="result-box" id="embedDirectExtractBox"></div>
+          </div>
+
+          <div id="embedStegoPreviewBox" style="margin-top:12px; display:none">
+            <label>Preview imagen stego</label>
+            <img class="preview-img" id="embedStegoPreview" style="display:block">
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════ EXTRACT ═══════ -->
+  <!--  EXTRACT  -->
   <div class="panel" id="extract">
     <div class="card">
-      <h2>🔓 Extraer mensaje de imagen</h2>
+      <h2> Extraer mensaje de imagen</h2>
       <div class="row">
         <div class="col">
           <label>Imagen stego</label>
           <div class="dropzone" id="extractDrop">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen stego o haz clic</div>
+            <div class="file-name" id="extractFileName"></div>
             <input type="file" id="extractFile" accept="image/*">
           </div>
           <img class="preview-img" id="extractPreview">
@@ -355,32 +591,56 @@ footer a:hover { text-decoration: underline; }
             <option value="HYBRID">HYBRID</option>
           </select>
 
-          <label style="margin-top:8px">Contraseña (si aplica)</label>
-          <input type="text" id="extractPassword" placeholder="Contraseña usada al ocultar">
+          <label style="margin-top:8px">Contrasena (si aplica)</label>
+          <input type="password" id="extractPassword" placeholder="Contrasena usada al ocultar">
 
           <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn btn-success" id="extractBtn">🔍 Extraer</button>
+            <button class="btn btn-success" id="extractBtn">
+              <span id="extractSpinner" style="display:none"><span class="spinner"></span></span>
+               Extraer
+            </button>
             <button class="btn btn-secondary" id="extractClear">Limpiar</button>
           </div>
         </div>
         <div class="col">
-          <label>Mensaje extraído</label>
+          <label>Mensaje extraido</label>
           <div class="result-box" id="extractResult">Esperando...</div>
+
+          <div class="metric-grid" id="extractMetrics" style="display:none">
+            <div class="metric-card">
+              <div class="metric-label">Modo detectado</div>
+              <div class="metric-value" id="extractMetricMode">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Bytes</div>
+              <div class="metric-value" id="extractMetricBytes">-</div>
+              <div class="metric-unit">B</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Encoding</div>
+              <div class="metric-value" id="extractMetricEnc">-</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:none" id="extractActions">
+            <button class="btn btn-secondary" id="extractCopyMsg"> Copiar mensaje</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════ ANALYZE ═══════ -->
+  <!--  ANALYZE  -->
   <div class="panel" id="analyze">
     <div class="card">
-      <h2>🔍 Análisis de detectabilidad</h2>
+      <h2> Analisis de detectabilidad</h2>
       <div class="row">
         <div class="col">
           <label>Imagen original (cover)</label>
           <div class="dropzone" id="analyzeDrop1">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen original</div>
+            <div class="file-name" id="analyzeFileName1"></div>
             <input type="file" id="analyzeFile1" accept="image/*">
           </div>
           <img class="preview-img" id="analyzePreview1">
@@ -388,31 +648,84 @@ footer a:hover { text-decoration: underline; }
         <div class="col">
           <label>Imagen con mensaje oculto (stego)</label>
           <div class="dropzone" id="analyzeDrop2">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen stego</div>
+            <div class="file-name" id="analyzeFileName2"></div>
             <input type="file" id="analyzeFile2" accept="image/*">
           </div>
           <img class="preview-img" id="analyzePreview2">
         </div>
       </div>
       <div style="margin-top:16px; display:flex; gap:8px">
-        <button class="btn btn-success" id="analyzeBtn">📊 Analizar</button>
+        <button class="btn btn-success" id="analyzeBtn">
+          <span id="analyzeSpinner" style="display:none"><span class="spinner"></span></span>
+           Analizar
+        </button>
         <button class="btn btn-secondary" id="analyzeClear">Limpiar</button>
       </div>
-      <div class="result-box" id="analyzeResult" style="display:none"></div>
+
+      <div id="analyzeCompareBox" style="display:none; margin-top:16px">
+        <h3>Comparacion visual</h3>
+        <div class="img-compare" id="imgCompare">
+          <img id="compareBase" src="" alt="Cover">
+          <div class="overlay">
+            <img id="compareOverlay" src="" alt="Stego">
+          </div>
+          <div class="slider-handle" id="compareSlider"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.75rem; color:var(--text-dim)">
+          <span> Cover (original)</span>
+          <span>Stego (con mensaje) </span>
+        </div>
+      </div>
+
+      <div id="analyzeHeatmapBox" style="display:none; margin-top:16px">
+        <h3>Mapa de diferencias (heatmap)</h3>
+        <div class="heatmap-container">
+          <canvas id="heatmapCanvas"></canvas>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:6px; font-size:0.75rem; color:var(--text-dim)">
+          <span>Diferencia minima</span>
+          <div style="flex:1; height:8px; background: linear-gradient(90deg, #0b0f14, #4dabf7, #ffd43b, #ff6b6b); border-radius:4px"></div>
+          <span>Diferencia maxima</span>
+        </div>
+      </div>
+
+      <div class="metric-grid" id="analyzeMetrics" style="display:none; margin-top:16px">
+        <div class="metric-card">
+          <div class="metric-label">PSNR</div>
+          <div class="metric-value" id="analyzeMetricPSNR">-</div>
+          <div class="metric-unit">dB</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">MSE</div>
+          <div class="metric-value" id="analyzeMetricMSE">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Diff Media</div>
+          <div class="metric-value" id="analyzeMetricDiffMean">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Diff Max</div>
+          <div class="metric-value" id="analyzeMetricDiffMax">-</div>
+        </div>
+      </div>
+
+      <div class="result-box" id="analyzeResult" style="display:none; margin-top:12px"></div>
     </div>
   </div>
 
-  <!-- ═══════ CAPACITY ═══════ -->
+  <!--  CAPACITY  -->
   <div class="panel" id="capacity">
     <div class="card">
-      <h2>📊 Capacidad de la imagen</h2>
+      <h2> Capacidad de la imagen</h2>
       <div class="row">
         <div class="col">
           <label>Imagen portadora</label>
           <div class="dropzone" id="capacityDrop">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen para analizar</div>
+            <div class="file-name" id="capacityFileName"></div>
             <input type="file" id="capacityFile" accept="image/*">
           </div>
           <img class="preview-img" id="capacityPreview">
@@ -443,28 +756,59 @@ footer a:hover { text-decoration: underline; }
           <input type="number" id="capacityECC" placeholder="48" min="0" max="255">
 
           <div style="margin-top:16px; display:flex; gap:8px">
-            <button class="btn btn-success" id="capacityBtn">📊 Calcular</button>
+            <button class="btn btn-success" id="capacityBtn">
+              <span id="capacitySpinner" style="display:none"><span class="spinner"></span></span>
+               Calcular
+            </button>
             <button class="btn btn-secondary" id="capacityClear">Limpiar</button>
           </div>
         </div>
         <div class="col">
           <label>Resultados</label>
           <div class="result-box" id="capacityResult">Esperando...</div>
+
+          <div class="metric-grid" id="capacityMetrics" style="display:none; margin-top:12px">
+            <div class="metric-card">
+              <div class="metric-label">Capacidad</div>
+              <div class="metric-value" id="capMetricBytes">-</div>
+              <div class="metric-unit">bytes</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Capacidad</div>
+              <div class="metric-value" id="capMetricKB">-</div>
+              <div class="metric-unit">KB</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Modo</div>
+              <div class="metric-value" id="capMetricMode">-</div>
+            </div>
+          </div>
+
+          <div class="chart-container" id="capacityChartBox" style="display:none">
+            <label style="margin-bottom:8px; display:block">Comparativa por modo</label>
+            <canvas id="capacityChart"></canvas>
+          </div>
+
+          <div id="capacityRecommend" style="display:none; margin-top:12px; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px">
+            <div style="font-size:0.85rem; font-weight:600; color:var(--accent2); margin-bottom:6px"> Recomendacion</div>
+            <div id="capacityRecommendText" style="font-size:0.82rem; color:var(--text-dim)"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════ BENCHMARK ═══════ -->
+  <!--  BENCHMARK  -->
   <div class="panel" id="benchmark">
     <div class="card">
-      <h2>⚡ Benchmark por modo</h2>
+      <h2> Benchmark por modo</h2>
       <div class="row">
         <div class="col">
           <label>Imagen de prueba</label>
           <div class="dropzone" id="benchmarkDrop">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen de prueba</div>
+            <div class="file-name" id="benchmarkFileName"></div>
             <input type="file" id="benchmarkFile" accept="image/*">
           </div>
           <img class="preview-img" id="benchmarkPreview">
@@ -474,7 +818,8 @@ footer a:hover { text-decoration: underline; }
 
           <label>Modo</label>
           <select id="benchmarkMode">
-            <option value="ARMOR" selected>ARMOR</option>
+            <option value="ALL" selected> Todos los modos (comparativa)</option>
+            <option value="ARMOR">ARMOR</option>
             <option value="FORTRESS">FORTRESS</option>
             <option value="GHOST">GHOST</option>
             <option value="PHANTOM">PHANTOM</option>
@@ -482,32 +827,122 @@ footer a:hover { text-decoration: underline; }
           </select>
 
           <div style="margin-top:16px; display:flex; gap:8px">
-            <button class="btn btn-success" id="benchmarkBtn">⚡ Ejecutar</button>
+            <button class="btn btn-success" id="benchmarkBtn">
+              <span id="benchmarkSpinner" style="display:none"><span class="spinner"></span></span>
+               Ejecutar
+            </button>
             <button class="btn btn-secondary" id="benchmarkClear">Limpiar</button>
           </div>
         </div>
         <div class="col">
           <label>Resultados</label>
           <div class="result-box" id="benchmarkResult">Esperando...</div>
+
+          <div class="chart-container" id="benchmarkChartBox" style="display:none">
+            <canvas id="benchmarkChart"></canvas>
+          </div>
+
+          <div id="benchmarkTableBox" style="display:none; margin-top:12px">
+            <label>Tabla comparativa</label>
+            <div class="result-box" id="benchmarkTable" style="max-height:200px; overflow:auto"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════ PUBLISH ═══════ -->
+  <!--  SIMULATE  -->
+  <div class="panel" id="simulate">
+    <div class="card">
+      <h2> Simular procesamiento de plataforma</h2>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:16px">
+        Predice si tu mensaje sobrevivira al procesamiento de una red social antes de publicar.
+        Oculta un mensaje, selecciona la plataforma y simula el ciclo completo.
+      </p>
+      <div class="row">
+        <div class="col">
+          <label>Imagen portadora</label>
+          <div class="dropzone" id="simulateDropCover">
+            <span class="icon"></span>
+            <div>Arrastra imagen portadora</div>
+            <div class="file-name" id="simulateFileNameCover"></div>
+            <input type="file" id="simulateFileCover" accept="image/*">
+          </div>
+          <img class="preview-img" id="simulatePreviewCover">
+
+          <label style="margin-top:12px">Mensaje a ocultar</label>
+          <textarea id="simulateMsg" placeholder="Mensaje para simulacion..."></textarea>
+
+          <label style="margin-top:8px">Modo de estego</label>
+          <select id="simulateMode">
+            <option value="HYBRID" selected>HYBRID (auto-seleccion)</option>
+            <option value="FORTRESS">FORTRESS</option>
+            <option value="ARMOR">ARMOR</option>
+            <option value="GHOST">GHOST</option>
+            <option value="PHANTOM">PHANTOM</option>
+          </select>
+
+          <label style="margin-top:8px">Plataforma a simular</label>
+          <select id="simulatePlatform">
+            <option value="telegram_photo">Telegram Foto</option>
+            <option value="telegram_file">Telegram Archivo</option>
+            <option value="discord">Discord</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp_standard">WhatsApp</option>
+            <option value="imgur">Imgur</option>
+            <option value="reddit">Reddit</option>
+          </select>
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-success" id="simulateBtn">
+              <span id="simulateSpinner" style="display:none"><span class="spinner"></span></span>
+               Simular
+            </button>
+            <button class="btn btn-secondary" id="simulateClear">Limpiar</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Resultado de simulacion</label>
+          <div class="result-box" id="simulateResult">Esperando...</div>
+
+          <div class="metric-grid" id="simulateMetrics" style="display:none; margin-top:12px">
+            <div class="metric-card">
+              <div class="metric-label">Sobrevive</div>
+              <div class="metric-value" id="simMetricSurvive">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Modo usado</div>
+              <div class="metric-value" id="simMetricMode">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Transformaciones</div>
+              <div class="metric-value" id="simMetricTrans">-</div>
+              <div class="metric-unit">pasos</div>
+            </div>
+          </div>
+
+          <div id="simulateTransBox" style="display:none; margin-top:12px">
+            <label>Transformaciones aplicadas</label>
+            <div class="result-box" id="simulateTransList" style="max-height:150px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--  PUBLISH  -->
   <div class="panel" id="publish">
     <div class="card">
-      <h2>📡 Publicar en plataformas reales</h2>
+      <h2> Publicar en plataformas reales</h2>
       <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:16px">
         Sube tu imagen stego a plataformas reales. Introduce las credenciales directamente en el formulario
-        o configúralas como variables de entorno en el servidor.
+        o configuralas como variables de entorno en el servidor.
       </p>
 
-      <!-- ═══════ CREDENTIALS CONFIGURATION ═══════ -->
-      <h3>🔐 Configurar credenciales</h3>
+      <h3> Configurar credenciales</h3>
       <p style="color:var(--text-dim); font-size:0.82rem; margin-bottom:10px">
-        Introduce las credenciales directamente aquí. Se guardan solo en memoria (RAM) y se pierden al cerrar el servidor.
-        También puedes introducirlas inline al publicar.
+        Introduce las credenciales directamente aqui. Se guardan solo en memoria (RAM) y se pierden al cerrar el servidor.
       </p>
 
       <div class="row" style="margin-bottom:12px">
@@ -527,50 +962,34 @@ footer a:hover { text-decoration: underline; }
         </div>
         <div class="col" style="display:flex; align-items:flex-end; gap:8px">
           <button class="btn btn-secondary" id="loadCredFields" style="margin-bottom:0">Cargar campos</button>
-          <button class="btn btn-danger" id="clearAllCreds" style="margin-bottom:0">🗑️ Limpiar todas</button>
+          <button class="btn btn-danger" id="clearAllCreds" style="margin-bottom:0"> Limpiar todas</button>
         </div>
       </div>
 
-      <div id="credFieldsBox" style="display:none; margin-bottom:16px">
-        <!-- Campos dinámicos se inyectan aquí -->
-      </div>
+      <div id="credFieldsBox" style="display:none; margin-bottom:16px"></div>
 
       <div id="credSavedBox" style="margin-bottom:16px">
-        <h3 style="font-size:0.9rem; margin-bottom:8px">💾 Plataformas configuradas en memoria</h3>
+        <h3 style="font-size:0.9rem; margin-bottom:8px"> Plataformas configuradas en memoria</h3>
         <div id="credSavedList" style="font-size:0.82rem; color:var(--text-dim)">
           Ninguna configurada
         </div>
       </div>
 
       <div class="publish-steps">
-        <div class="publish-step active" id="step1">
-          <span class="step-num">1</span>
-          Seleccionar imagen
-        </div>
-        <div class="publish-step" id="step2">
-          <span class="step-num">2</span>
-          Elegir plataforma
-        </div>
-        <div class="publish-step" id="step3">
-          <span class="step-num">3</span>
-          Configurar credenciales
-        </div>
-        <div class="publish-step" id="step4">
-          <span class="step-num">4</span>
-          Publicar
-        </div>
-        <div class="publish-step" id="step5">
-          <span class="step-num">5</span>
-          Validar E2E
-        </div>
+        <div class="publish-step active" id="step1"><span class="step-num">1</span>Seleccionar imagen</div>
+        <div class="publish-step" id="step2"><span class="step-num">2</span>Elegir plataforma</div>
+        <div class="publish-step" id="step3"><span class="step-num">3</span>Configurar credenciales</div>
+        <div class="publish-step" id="step4"><span class="step-num">4</span>Publicar</div>
+        <div class="publish-step" id="step5"><span class="step-num">5</span>Validar E2E</div>
       </div>
 
       <div class="row">
         <div class="col">
           <label>Imagen stego a publicar</label>
           <div class="dropzone" id="publishDrop">
-            <span class="icon">📁</span>
+            <span class="icon"></span>
             <div>Arrastra imagen stego o haz clic</div>
+            <div class="file-name" id="publishFileName"></div>
             <input type="file" id="publishFile" accept="image/*">
           </div>
           <img class="preview-img" id="publishPreview">
@@ -589,9 +1008,9 @@ footer a:hover { text-decoration: underline; }
           </select>
 
           <label style="margin-top:8px">Mensaje / Caption (opcional)</label>
-          <input type="text" id="publishCaption" placeholder="Caption para la publicación">
+          <input type="text" id="publishCaption" placeholder="Caption para la publicacion">
 
-          <label style="margin-top:8px">Modo de estego (para validación E2E)</label>
+          <label style="margin-top:8px">Modo de estego (para validacion E2E)</label>
           <select id="publishMode">
             <option value="auto">Auto-detectar</option>
             <option value="FORTRESS">FORTRESS</option>
@@ -601,143 +1020,72 @@ footer a:hover { text-decoration: underline; }
             <option value="HYBRID">HYBRID</option>
           </select>
 
-          <!-- Credenciales dinámicas inline -->
           <div id="credentialsBox" style="margin-top:16px; display:none">
-            <h3>🔑 Credenciales de la plataforma</h3>
+            <h3> Credenciales de la plataforma</h3>
             <p class="cred-hint" style="margin-bottom:10px">
-              Estas credenciales se envían al servidor solo para esta publicación.
-              Si las dejas vacías, se usarán las variables de entorno del servidor.
+              Estas credenciales se envian al servidor solo para esta publicacion.
+              Si las dejas vacias, se usaran las variables de entorno del servidor.
             </p>
-
-            <!-- Telegram -->
             <div class="cred-group" data-platform="telegram">
-              <div class="cred-field">
-                <label>Bot Token</label>
-                <input type="password" class="cred-input" data-key="TELEGRAM_BOT_TOKEN" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
-              </div>
-              <div class="cred-field">
-                <label>Chat ID</label>
-                <input type="text" class="cred-input" data-key="TELEGRAM_CHAT_ID" placeholder="-1001234567890">
-              </div>
+              <div class="cred-field"><label>Bot Token</label><input type="password" class="cred-input" data-key="TELEGRAM_BOT_TOKEN" placeholder="123456:ABC-DEF..."></div>
+              <div class="cred-field"><label>Chat ID</label><input type="text" class="cred-input" data-key="TELEGRAM_CHAT_ID" placeholder="-1001234567890"></div>
             </div>
-
-            <!-- Discord -->
             <div class="cred-group" data-platform="discord">
-              <div class="cred-field">
-                <label>Webhook URL</label>
-                <input type="password" class="cred-input" data-key="DISCORD_WEBHOOK_URL" placeholder="https://discord.com/api/webhooks/...">
-              </div>
+              <div class="cred-field"><label>Webhook URL</label><input type="password" class="cred-input" data-key="DISCORD_WEBHOOK_URL" placeholder="https://discord.com/api/webhooks/..."></div>
             </div>
-
-            <!-- Imgur -->
             <div class="cred-group" data-platform="imgur">
-              <div class="cred-field">
-                <label>Client ID</label>
-                <input type="password" class="cred-input" data-key="IMGUR_CLIENT_ID" placeholder="a1b2c3d4e5f6789">
-              </div>
+              <div class="cred-field"><label>Client ID</label><input type="password" class="cred-input" data-key="IMGUR_CLIENT_ID" placeholder="a1b2c3d4e5f6789"></div>
             </div>
-
-            <!-- Reddit -->
             <div class="cred-group" data-platform="reddit">
-              <div class="cred-field">
-                <label>Client ID</label>
-                <input type="password" class="cred-input" data-key="REDDIT_CLIENT_ID" placeholder="abc123def456">
-              </div>
-              <div class="cred-field">
-                <label>Client Secret</label>
-                <input type="password" class="cred-input" data-key="REDDIT_CLIENT_SECRET" placeholder="secreto">
-              </div>
-              <div class="cred-field">
-                <label>Username</label>
-                <input type="text" class="cred-input" data-key="REDDIT_USERNAME" placeholder="tu_usuario">
-              </div>
-              <div class="cred-field">
-                <label>Password</label>
-                <input type="password" class="cred-input" data-key="REDDIT_PASSWORD" placeholder="tu_contraseña">
-              </div>
+              <div class="cred-field"><label>Client ID</label><input type="password" class="cred-input" data-key="REDDIT_CLIENT_ID" placeholder="abc123def456"></div>
+              <div class="cred-field"><label>Client Secret</label><input type="password" class="cred-input" data-key="REDDIT_CLIENT_SECRET" placeholder="secreto"></div>
+              <div class="cred-field"><label>Username</label><input type="text" class="cred-input" data-key="REDDIT_USERNAME" placeholder="tu_usuario"></div>
+              <div class="cred-field"><label>Password</label><input type="password" class="cred-input" data-key="REDDIT_PASSWORD" placeholder="tu_contrasena"></div>
             </div>
-
-            <!-- Twitter -->
             <div class="cred-group" data-platform="twitter">
-              <div class="cred-field">
-                <label>API Key</label>
-                <input type="password" class="cred-input" data-key="TWITTER_API_KEY" placeholder="...">
-              </div>
-              <div class="cred-field">
-                <label>API Secret</label>
-                <input type="password" class="cred-input" data-key="TWITTER_API_SECRET" placeholder="...">
-              </div>
-              <div class="cred-field">
-                <label>Access Token</label>
-                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN" placeholder="...">
-              </div>
-              <div class="cred-field">
-                <label>Access Token Secret</label>
-                <input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN_SECRET" placeholder="...">
-              </div>
+              <div class="cred-field"><label>API Key</label><input type="password" class="cred-input" data-key="TWITTER_API_KEY" placeholder="..."></div>
+              <div class="cred-field"><label>API Secret</label><input type="password" class="cred-input" data-key="TWITTER_API_SECRET" placeholder="..."></div>
+              <div class="cred-field"><label>Access Token</label><input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN" placeholder="..."></div>
+              <div class="cred-field"><label>Access Token Secret</label><input type="password" class="cred-input" data-key="TWITTER_ACCESS_TOKEN_SECRET" placeholder="..."></div>
             </div>
-
-            <!-- Instagram -->
             <div class="cred-group" data-platform="instagram">
-              <div class="cred-field">
-                <label>Business Account ID</label>
-                <input type="text" class="cred-input" data-key="INSTAGRAM_BUSINESS_ACCOUNT_ID" placeholder="17841400000000000">
-              </div>
-              <div class="cred-field">
-                <label>Meta Page Access Token</label>
-                <input type="password" class="cred-input" data-key="META_PAGE_ACCESS_TOKEN" placeholder="EAA...">
-              </div>
+              <div class="cred-field"><label>Business Account ID</label><input type="text" class="cred-input" data-key="INSTAGRAM_BUSINESS_ACCOUNT_ID" placeholder="17841400000000000"></div>
+              <div class="cred-field"><label>Meta Page Access Token</label><input type="password" class="cred-input" data-key="META_PAGE_ACCESS_TOKEN" placeholder="EAA..."></div>
             </div>
-
-            <!-- WhatsApp -->
             <div class="cred-group" data-platform="whatsapp">
-              <div class="cred-field">
-                <label>Business Phone ID</label>
-                <input type="text" class="cred-input" data-key="WHATSAPP_BUSINESS_PHONE_ID" placeholder="123456789012345">
-              </div>
-              <div class="cred-field">
-                <label>Access Token</label>
-                <input type="password" class="cred-input" data-key="WHATSAPP_ACCESS_TOKEN" placeholder="EAA...">
-              </div>
-              <div class="cred-field">
-                <label>Recipient Phone (self-messaging)</label>
-                <input type="text" class="cred-input" data-key="WHATSAPP_RECIPIENT_PHONE" placeholder="+34123456789">
-              </div>
+              <div class="cred-field"><label>Business Phone ID</label><input type="text" class="cred-input" data-key="WHATSAPP_BUSINESS_PHONE_ID" placeholder="123456789012345"></div>
+              <div class="cred-field"><label>Access Token</label><input type="password" class="cred-input" data-key="WHATSAPP_ACCESS_TOKEN" placeholder="EAA..."></div>
+              <div class="cred-field"><label>Recipient Phone</label><input type="text" class="cred-input" data-key="WHATSAPP_RECIPIENT_PHONE" placeholder="+34123456789"></div>
             </div>
-
-            <!-- Nostr -->
             <div class="cred-group" data-platform="nostr">
-              <div class="cred-field">
-                <label>Private Key (hex)</label>
-                <input type="password" class="cred-input" data-key="NOSTR_PRIVATE_KEY" placeholder="nsec1... o hex">
-              </div>
+              <div class="cred-field"><label>Private Key (hex)</label><input type="password" class="cred-input" data-key="NOSTR_PRIVATE_KEY" placeholder="nsec1... o hex"></div>
             </div>
           </div>
 
           <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
             <button class="btn btn-success" id="publishBtn">
               <span id="publishSpinner" style="display:none"><span class="spinner"></span></span>
-              📡 Publicar
+               Publicar
             </button>
             <button class="btn btn-warning" id="publishValidateBtn">
               <span id="validateSpinner" style="display:none"><span class="spinner"></span></span>
-              ✅ Publicar + Validar E2E
+               Publicar + Validar E2E
             </button>
             <button class="btn btn-secondary" id="publishClear">Limpiar</button>
           </div>
         </div>
 
         <div class="col">
-          <label>Resultado de publicación</label>
+          <label>Resultado de publicacion</label>
           <div class="result-box" id="publishResult">Esperando...</div>
 
           <div id="publishUrlBox" style="margin-top:12px; display:none">
-            <label>URL de la publicación</label>
+            <label>URL de la publicacion</label>
             <div class="url-box" id="publishUrl" title="Haz clic para copiar"></div>
           </div>
 
           <div id="e2eResultBox" style="display:none">
-            <label style="margin-top:12px">Resultado validación E2E</label>
+            <label style="margin-top:12px">Resultado validacion E2E</label>
             <div class="e2e-result" id="e2eResult"></div>
           </div>
         </div>
@@ -746,23 +1094,86 @@ footer a:hover { text-decoration: underline; }
   </div>
 
   <footer>
-    Stegstr v2.2.0 — Widget visual para exploración de esteganografía LSB avanzada
+    Stegstr v2.2.0 - Widget visual para exploracion de esteganografia LSB avanzada
   </footer>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <span class="spinner" style="width:40px;height:40px;border-width:3px"></span>
+  <div class="loading-text" id="loadingText">Procesando...</div>
+</div>
+
+<!-- History Panel -->
+<div class="history-panel" id="historyPanel">
+  <h3> Historial de operaciones</h3>
+  <div id="historyList">
+    <div style="color:var(--text-dim); font-size:0.8rem; text-align:center; padding:20px">
+      No hay operaciones registradas
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
 /**
- * Stegstr Widget v2.2.0 — Frontend SPA
+ * Stegstr Widget v2.2.0 - Frontend SPA (Completado)
  * Consume los endpoints REST del widget_server.py
+ * Nuevas funcionalidades:
+ *   - Deteccion de backend con modo demo offline
+ *   - Pestana Simular (endpoint /simulate)
+ *   - Metricas visuales (cards) en todas las pestanas
+ *   - Comparacion visual con slider en Analyze
+ *   - Heatmap de diferencias en Analyze
+ *   - Graficos Canvas para Capacity y Benchmark
+ *   - Benchmark comparativo de todos los modos
+ *   - Cards interactivas para seleccion de modo
+ *   - Historial de operaciones
+ *   - Mejor manejo de errores y estados de carga
  */
 const API_BASE = "http://127.0.0.1:8080";
+let backendOnline = false;
+let lastEmbedStegoUrl = null;
 let currentPubResult = null;
 let lastCapacityBytes = 0;
+let historyLog = JSON.parse(localStorage.getItem('stegstr_history') || '[]');
 
-// ── UI Helpers ──
+//  Backend Detection 
+async function checkBackend() {
+  const badge = document.getElementById('backendStatus');
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(API_BASE + '/', { signal: ctrl.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      backendOnline = true;
+      badge.className = 'backend-status backend-online';
+      badge.innerHTML = ' Backend online';
+      document.getElementById('demoBanner').style.display = 'none';
+      enableTabs(true);
+    } else {
+      throw new Error('Not OK');
+    }
+  } catch (e) {
+    backendOnline = false;
+    badge.className = 'backend-status backend-offline';
+    badge.innerHTML = ' Backend offline';
+    document.getElementById('demoBanner').style.display = 'flex';
+    enableTabs(false);
+  }
+}
 
+function enableTabs(online) {
+  document.querySelectorAll('.tab[data-tab]').forEach(t => {
+    if (t.dataset.tab !== 'embed' && t.dataset.tab !== 'extract') {
+      t.disabled = !online;
+    }
+  });
+}
+
+//  UI Helpers 
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -777,8 +1188,14 @@ function showToast(msg, type='info') {
   setTimeout(() => t.style.display = 'none', 3000);
 }
 
+function setLoading(show, text='Procesando...') {
+  const overlay = document.getElementById('loadingOverlay');
+  document.getElementById('loadingText').textContent = text;
+  overlay.classList.toggle('active', show);
+}
+
 function switchTab(id) {
-  document.querySelectorAll('.tab').forEach(t => {
+  document.querySelectorAll('.tab[data-tab]').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === id);
   });
   document.querySelectorAll('.panel').forEach(p => {
@@ -786,16 +1203,52 @@ function switchTab(id) {
   });
 }
 
-document.querySelectorAll('.tab').forEach(t => {
+document.querySelectorAll('.tab[data-tab]').forEach(t => {
   t.addEventListener('click', () => switchTab(t.dataset.tab));
 });
 
-// ── Dropzones ──
+//  History 
+function addHistory(action, detail) {
+  const entry = { time: new Date().toLocaleString(), action, detail };
+  historyLog.unshift(entry);
+  if (historyLog.length > 50) historyLog.pop();
+  localStorage.setItem('stegstr_history', JSON.stringify(historyLog));
+  renderHistory();
+}
 
-function setupDropzone(dropId, fileId, previewId) {
+function renderHistory() {
+  const box = document.getElementById('historyList');
+  if (!historyLog.length) {
+    box.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; text-align:center; padding:20px">No hay operaciones registradas</div>';
+    return;
+  }
+  box.innerHTML = historyLog.map(h => `
+    <div class="history-item">
+      <div class="history-time">${h.time}</div>
+      <div class="history-action">${h.action}</div>
+      <div style="color:var(--text-dim); margin-top:2px; font-size:0.72rem">${h.detail}</div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('historyToggle').addEventListener('click', () => {
+  document.getElementById('historyPanel').classList.toggle('open');
+});
+document.addEventListener('click', e => {
+  const panel = document.getElementById('historyPanel');
+  const toggle = document.getElementById('historyToggle');
+  if (!panel.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
+renderHistory();
+
+//  Dropzones 
+function setupDropzone(dropId, fileId, previewId, nameId) {
   const drop = document.getElementById(dropId);
   const file = document.getElementById(fileId);
   const preview = document.getElementById(previewId);
+  const nameEl = nameId ? document.getElementById(nameId) : null;
   if (!drop || !file) return;
 
   drop.addEventListener('click', () => file.click());
@@ -806,10 +1259,14 @@ function setupDropzone(dropId, fileId, previewId) {
     if (e.dataTransfer.files.length) {
       file.files = e.dataTransfer.files;
       showPreview(file.files[0], preview);
+      if (nameEl) nameEl.textContent = file.files[0].name;
     }
   });
   file.addEventListener('change', () => {
-    if (file.files.length) showPreview(file.files[0], preview);
+    if (file.files.length) {
+      showPreview(file.files[0], preview);
+      if (nameEl) nameEl.textContent = file.files[0].name;
+    }
   });
 }
 
@@ -820,17 +1277,34 @@ function showPreview(file, img) {
   reader.readAsDataURL(file);
 }
 
-setupDropzone('embedDrop',   'embedFile',   'embedPreview');
-setupDropzone('extractDrop', 'extractFile', 'extractPreview');
-setupDropzone('analyzeDrop1','analyzeFile1','analyzePreview1');
-setupDropzone('analyzeDrop2','analyzeFile2','analyzePreview2');
-setupDropzone('capacityDrop','capacityFile','capacityPreview');
-setupDropzone('benchmarkDrop','benchmarkFile','benchmarkPreview');
-setupDropzone('publishDrop', 'publishFile', 'publishPreview');
+setupDropzone('embedDrop',   'embedFile',   'embedPreview',   'embedFileName');
+setupDropzone('extractDrop', 'extractFile', 'extractPreview', 'extractFileName');
+setupDropzone('analyzeDrop1','analyzeFile1','analyzePreview1','analyzeFileName1');
+setupDropzone('analyzeDrop2','analyzeFile2','analyzePreview2','analyzeFileName2');
+setupDropzone('capacityDrop','capacityFile','capacityPreview','capacityFileName');
+setupDropzone('benchmarkDrop','benchmarkFile','benchmarkPreview','benchmarkFileName');
+setupDropzone('simulateDropCover','simulateFileCover','simulatePreviewCover','simulateFileNameCover');
+setupDropzone('publishDrop', 'publishFile', 'publishPreview', 'publishFileName');
 
-// ── EMBED ──
+//  Mode Cards 
+document.querySelectorAll('.mode-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    document.getElementById('embedMode').value = card.dataset.mode;
+  });
+});
 
+//  Embed message byte counter 
+document.getElementById('embedMsg').addEventListener('input', function() {
+  const bytes = new Blob([this.value]).size;
+  document.getElementById('embedMsgBytes').textContent = bytes;
+  document.getElementById('embedMsgWarn').style.display = bytes > 10000 ? 'inline' : 'none';
+});
+
+//  EMBED 
 document.getElementById('embedBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const file = document.getElementById('embedFile').files[0];
   const msg = document.getElementById('embedMsg').value;
   const mode = document.getElementById('embedMode').value;
@@ -848,32 +1322,107 @@ document.getElementById('embedBtn').addEventListener('click', async () => {
   if (password) fd.append('password', password);
   fd.append('autotune', autotune ? 'true' : 'false');
 
-  const res = await fetch(API_BASE + '/embed', { method: 'POST', body: fd });
-  const data = await res.json();
-  const box = document.getElementById('embedResult');
-  box.textContent = JSON.stringify(data, null, 2);
+  setLoading(true, 'Ocultando mensaje...');
+  document.getElementById('embedSpinner').style.display = 'inline-block';
+  document.getElementById('embedBtn').disabled = true;
 
-  if (data.success && data.stego_url) {
-    const link = document.getElementById('embedLink');
-    link.href = data.stego_url;
-    document.getElementById('embedDownload').style.display = 'block';
-    showToast('Mensaje ocultado correctamente', 'success');
-  } else {
-    showToast(data.error || 'Error al ocultar', 'error');
+  try {
+    const res = await fetch(API_BASE + '/embed', { method: 'POST', body: fd });
+    const data = await res.json();
+    const box = document.getElementById('embedResult');
+    box.textContent = JSON.stringify(data, null, 2);
+
+    if (data.success && data.stego_url) {
+      lastEmbedStegoUrl = data.stego_url;
+      const link = document.getElementById('embedLink');
+      link.href = API_BASE + data.stego_url;
+      document.getElementById('embedDownload').style.display = 'block';
+
+      // Preview stego
+      const stegoPreview = document.getElementById('embedStegoPreview');
+      stegoPreview.src = API_BASE + data.stego_url;
+      document.getElementById('embedStegoPreviewBox').style.display = 'block';
+
+      // Metrics
+      document.getElementById('embedMetrics').style.display = 'grid';
+      document.getElementById('embedMetricMode').textContent = data.mode || '-';
+      document.getElementById('embedMetricCap').textContent = data.capacity_bits || '-';
+      document.getElementById('embedMetricPSNR').textContent = (data.quality_metrics && data.quality_metrics.psnr_db) ? data.quality_metrics.psnr_db.toFixed(1) : '-';
+      document.getElementById('embedMetricMsg').textContent = data.message_bytes || '-';
+
+      showToast('Mensaje ocultado correctamente', 'success');
+      addHistory(' Ocultar', `Modo: ${data.mode}, Capacidad: ${data.capacity_bits} bits`);
+    } else {
+      showToast(data.error || 'Error al ocultar', 'error');
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('embedSpinner').style.display = 'none';
+    document.getElementById('embedBtn').disabled = false;
   }
 });
 
 document.getElementById('embedClear').addEventListener('click', () => {
+  lastEmbedStegoUrl = null;
   document.getElementById('embedFile').value = '';
   document.getElementById('embedPreview').style.display = 'none';
+  document.getElementById('embedFileName').textContent = '';
   document.getElementById('embedMsg').value = '';
+  document.getElementById('embedMsgBytes').textContent = '0';
   document.getElementById('embedResult').textContent = 'Esperando...';
   document.getElementById('embedDownload').style.display = 'none';
+  document.getElementById('embedStegoPreviewBox').style.display = 'none';
+  document.getElementById('embedMetrics').style.display = 'none';
+  document.getElementById('embedPassword').value = '';
 });
 
-// ── EXTRACT ──
+document.getElementById('embedCopyJson').addEventListener('click', () => {
+  const text = document.getElementById('embedResult').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('JSON copiado al portapapeles', 'success'));
+});
 
+// Extraer directamente de la imagen stego generada (sin descargar/subir)
+document.getElementById('embedExtractDirect').addEventListener('click', async () => {
+  if (!lastEmbedStegoUrl) return showToast('Primero oculta un mensaje', 'error');
+
+  const mode = document.getElementById('embedMode').value;
+  const password = document.getElementById('embedPassword').value;
+
+  setLoading(true, 'Extrayendo mensaje de la imagen stego...');
+
+  try {
+    const fd = new FormData();
+    fd.append('stego_url', lastEmbedStegoUrl);
+    if (mode && mode !== 'HYBRID') fd.append('mode', mode);
+    if (password) fd.append('password', password);
+
+    const res = await fetch(API_BASE + '/extract_url', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    const box = document.getElementById('embedDirectExtractBox');
+    document.getElementById('embedDirectExtractResult').style.display = 'block';
+
+    if (data.success) {
+      box.textContent = ' ' + data.message;
+      box.style.color = 'var(--accent2)';
+      showToast('Extraccion directa exitosa', 'success');
+    } else {
+      box.textContent = ' ' + (data.error || 'Error');
+      box.style.color = 'var(--danger)';
+      showToast(data.error || 'Error', 'error');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+});
+
+//  EXTRACT 
 document.getElementById('extractBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const file = document.getElementById('extractFile').files[0];
   const mode = document.getElementById('extractMode').value;
   const password = document.getElementById('extractPassword').value;
@@ -884,49 +1433,223 @@ document.getElementById('extractBtn').addEventListener('click', async () => {
   if (mode) fd.append('mode', mode);
   if (password) fd.append('password', password);
 
-  const res = await fetch(API_BASE + '/extract', { method: 'POST', body: fd });
-  const data = await res.json();
-  const box = document.getElementById('extractResult');
-  box.textContent = data.success ? data.message : (data.error || 'Error');
-  showToast(data.success ? 'Mensaje extraído' : (data.error || 'Error'), data.success ? 'success' : 'error');
+  setLoading(true, 'Extrayendo mensaje...');
+  document.getElementById('extractSpinner').style.display = 'inline-block';
+  document.getElementById('extractBtn').disabled = true;
+
+  try {
+    const res = await fetch(API_BASE + '/extract', { method: 'POST', body: fd });
+    const data = await res.json();
+    const box = document.getElementById('extractResult');
+    box.textContent = data.success ? data.message : (data.error || 'Error');
+
+    if (data.success) {
+      document.getElementById('extractMetrics').style.display = 'grid';
+      document.getElementById('extractMetricMode').textContent = data.mode || 'Auto';
+      document.getElementById('extractMetricBytes').textContent = data.raw_bytes || '-';
+      document.getElementById('extractMetricEnc').textContent = data.encoding || 'utf-8';
+      document.getElementById('extractActions').style.display = 'block';
+      showToast('Mensaje extraido', 'success');
+      addHistory(' Extraer', `Modo: ${data.mode}, ${data.raw_bytes} bytes`);
+    } else {
+      // Mostrar error detallado con sugerencias
+      const errMsg = data.error || 'Error desconocido';
+      let suggestion = '';
+      if (errMsg.includes('No se encontro mensaje')) {
+        suggestion = '\n\n Sugerencias:\n1. Verifica que la imagen contiene un mensaje stego\n2. Si usaste contrasena, introducela correctamente\n3. Prueba con "Auto-detectar" el modo\n4. Los modos FORTRESS/ARMOR (DCT) a veces fallan el roundtrip - prueba GHOST/PHANTOM';
+      }
+      document.getElementById('extractResult').textContent = ' ' + errMsg + suggestion;
+      showToast(errMsg, 'error');
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('extractSpinner').style.display = 'none';
+    document.getElementById('extractBtn').disabled = false;
+  }
 });
 
 document.getElementById('extractClear').addEventListener('click', () => {
   document.getElementById('extractFile').value = '';
   document.getElementById('extractPreview').style.display = 'none';
+  document.getElementById('extractFileName').textContent = '';
   document.getElementById('extractResult').textContent = 'Esperando...';
+  document.getElementById('extractMetrics').style.display = 'none';
+  document.getElementById('extractActions').style.display = 'none';
+  document.getElementById('extractPassword').value = '';
 });
 
-// ── ANALYZE ──
+document.getElementById('extractCopyMsg').addEventListener('click', () => {
+  const text = document.getElementById('extractResult').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Mensaje copiado', 'success'));
+});
 
+//  ANALYZE 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const f1 = document.getElementById('analyzeFile1').files[0];
   const f2 = document.getElementById('analyzeFile2').files[0];
-  if (!f1 || !f2) return showToast('Faltan ambas imágenes', 'error');
+  if (!f1 || !f2) return showToast('Faltan ambas imagenes', 'error');
 
   const fd = new FormData();
   fd.append('cover', f1);
   fd.append('stego', f2);
 
-  const res = await fetch(API_BASE + '/analyze', { method: 'POST', body: fd });
-  const data = await res.json();
-  const box = document.getElementById('analyzeResult');
-  box.style.display = 'block';
-  box.textContent = JSON.stringify(data, null, 2);
-  showToast(data.success ? 'Análisis completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+  setLoading(true, 'Analizando imagenes...');
+  document.getElementById('analyzeSpinner').style.display = 'inline-block';
+  document.getElementById('analyzeBtn').disabled = true;
+
+  try {
+    const res = await fetch(API_BASE + '/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    const box = document.getElementById('analyzeResult');
+    box.style.display = 'block';
+    box.textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      // Metrics
+      document.getElementById('analyzeMetrics').style.display = 'grid';
+      document.getElementById('analyzeMetricPSNR').textContent = data.psnr_db || '-';
+      document.getElementById('analyzeMetricMSE').textContent = data.mse || '-';
+      document.getElementById('analyzeMetricDiffMean').textContent = data.diff_mean || '-';
+      document.getElementById('analyzeMetricDiffMax').textContent = data.diff_max || '-';
+
+      // Comparison slider
+      const reader1 = new FileReader();
+      const reader2 = new FileReader();
+      reader1.onload = e1 => {
+        reader2.onload = e2 => {
+          document.getElementById('compareBase').src = e1.target.result;
+          document.getElementById('compareOverlay').src = e2.target.result;
+          document.getElementById('analyzeCompareBox').style.display = 'block';
+          initCompareSlider();
+
+          // Heatmap
+          generateHeatmap(e1.target.result, e2.target.result);
+        };
+        reader2.readAsDataURL(f2);
+      };
+      reader1.readAsDataURL(f1);
+
+      showToast('Analisis completado', 'success');
+      addHistory(' Analizar', `PSNR: ${data.psnr_db} dB`);
+    } else {
+      const errMsg = data.error || 'Error desconocido';
+      let detail = '';
+      if (data.traceback) detail = '\n\n Detalle:\n' + data.traceback.substring(0, 400);
+      document.getElementById('analyzeResult').textContent = ' ' + errMsg + detail;
+      showToast(errMsg, 'error');
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('analyzeSpinner').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = false;
+  }
 });
+
+function initCompareSlider() {
+  const container = document.getElementById('imgCompare');
+  const overlay = container.querySelector('.overlay');
+  const handle = document.getElementById('compareSlider');
+  let isDragging = false;
+
+  function updatePos(x) {
+    const rect = container.getBoundingClientRect();
+    let pct = ((x - rect.left) / rect.width) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    overlay.style.width = pct + '%';
+    handle.style.left = pct + '%';
+  }
+
+  handle.addEventListener('mousedown', () => isDragging = true);
+  document.addEventListener('mouseup', () => isDragging = false);
+  document.addEventListener('mousemove', e => { if (isDragging) updatePos(e.clientX); });
+
+  handle.addEventListener('touchstart', () => isDragging = true);
+  document.addEventListener('touchend', () => isDragging = false);
+  document.addEventListener('touchmove', e => { if (isDragging) updatePos(e.touches[0].clientX); });
+}
+
+function generateHeatmap(coverSrc, stegoSrc) {
+  const canvas = document.getElementById('heatmapCanvas');
+  const ctx = canvas.getContext('2d');
+  const coverImg = new Image();
+  const stegoImg = new Image();
+
+  coverImg.onload = () => {
+    stegoImg.onload = () => {
+      const w = Math.min(coverImg.width, 400);
+      const h = Math.min(coverImg.height, 300);
+      canvas.width = w;
+      canvas.height = h;
+
+      const coverCanvas = document.createElement('canvas');
+      const stegoCanvas = document.createElement('canvas');
+      coverCanvas.width = w; coverCanvas.height = h;
+      stegoCanvas.width = w; stegoCanvas.height = h;
+      coverCanvas.getContext('2d').drawImage(coverImg, 0, 0, w, h);
+      stegoCanvas.getContext('2d').drawImage(stegoImg, 0, 0, w, h);
+
+      const cData = coverCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+      const sData = stegoCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+      const out = ctx.createImageData(w, h);
+
+      let maxDiff = 0;
+      const diffs = [];
+      for (let i = 0; i < cData.length; i += 4) {
+        const diff = Math.abs(cData[i] - sData[i]) + Math.abs(cData[i+1] - sData[i+1]) + Math.abs(cData[i+2] - sData[i+2]);
+        diffs.push(diff);
+        if (diff > maxDiff) maxDiff = diff;
+      }
+
+      for (let i = 0; i < diffs.length; i++) {
+        const ratio = maxDiff > 0 ? diffs[i] / maxDiff : 0;
+        const idx = i * 4;
+        // Heatmap: black -> blue -> yellow -> red
+        let r, g, b;
+        if (ratio < 0.33) {
+          const t = ratio / 0.33;
+          r = 0; g = Math.round(50 * t); b = Math.round(50 + 150 * t);
+        } else if (ratio < 0.66) {
+          const t = (ratio - 0.33) / 0.33;
+          r = Math.round(255 * t); g = Math.round(50 + 150 * t); b = Math.round(200 * (1 - t));
+        } else {
+          const t = (ratio - 0.66) / 0.34;
+          r = 255; g = Math.round(200 * (1 - t)); b = 0;
+        }
+        out.data[idx] = r;
+        out.data[idx+1] = g;
+        out.data[idx+2] = b;
+        out.data[idx+3] = 255;
+      }
+
+      ctx.putImageData(out, 0, 0);
+      document.getElementById('analyzeHeatmapBox').style.display = 'block';
+    };
+    stegoImg.src = stegoSrc;
+  };
+  coverImg.src = coverSrc;
+}
 
 document.getElementById('analyzeClear').addEventListener('click', () => {
   document.getElementById('analyzeFile1').value = '';
   document.getElementById('analyzeFile2').value = '';
   document.getElementById('analyzePreview1').style.display = 'none';
   document.getElementById('analyzePreview2').style.display = 'none';
+  document.getElementById('analyzeFileName1').textContent = '';
+  document.getElementById('analyzeFileName2').textContent = '';
   document.getElementById('analyzeResult').style.display = 'none';
+  document.getElementById('analyzeCompareBox').style.display = 'none';
+  document.getElementById('analyzeHeatmapBox').style.display = 'none';
+  document.getElementById('analyzeMetrics').style.display = 'none';
 });
 
-// ── CAPACITY ──
-
+//  CAPACITY 
 document.getElementById('capacityBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const file = document.getElementById('capacityFile').files[0];
   const mode = document.getElementById('capacityMode').value;
   const platform = document.getElementById('capacityPlatform').value;
@@ -939,49 +1662,342 @@ document.getElementById('capacityBtn').addEventListener('click', async () => {
   if (platform) fd.append('platform', platform);
   if (ecc) fd.append('ecc', ecc);
 
-  const res = await fetch(API_BASE + '/capacity', { method: 'POST', body: fd });
-  const data = await res.json();
-  document.getElementById('capacityResult').textContent = JSON.stringify(data, null, 2);
-  if (data.success && data.capacity_bytes) {
-    lastCapacityBytes = data.capacity_bytes;
+  setLoading(true, 'Calculando capacidad...');
+  document.getElementById('capacitySpinner').style.display = 'inline-block';
+  document.getElementById('capacityBtn').disabled = true;
+
+  try {
+    const res = await fetch(API_BASE + '/capacity', { method: 'POST', body: fd });
+    const data = await res.json();
+    document.getElementById('capacityResult').textContent = JSON.stringify(data, null, 2);
+
+    if (data.success && data.capacity_bytes) {
+      lastCapacityBytes = data.capacity_bytes;
+      document.getElementById('capacityMetrics').style.display = 'grid';
+      document.getElementById('capMetricBytes').textContent = data.capacity_bytes;
+      document.getElementById('capMetricKB').textContent = data.capacity_kb;
+      document.getElementById('capMetricMode').textContent = data.mode || mode;
+
+      // Recommendation
+      const rec = document.getElementById('capacityRecommend');
+      const recText = document.getElementById('capacityRecommendText');
+      let recMsg = '';
+      if (data.capacity_bytes < 100) {
+        recMsg = 'Capacidad muy limitada. Usa FORTRESS para maxima robustez o GHOST para mas capacidad.';
+      } else if (data.capacity_bytes < 1000) {
+        recMsg = 'Capacidad moderada. ARMOR ofrece buen equilibrio robustez/capacidad.';
+      } else {
+        recMsg = 'Buena capacidad disponible. Puedes usar cualquier modo segun tus necesidades.';
+      }
+      if (platform) {
+        recMsg += ` Optimizado para ${platform.replace('_', ' ')}.`;
+      }
+      recText.textContent = recMsg;
+      rec.style.display = 'block';
+
+      // Chart
+      drawCapacityChart(data.capacity_bytes, mode);
+
+      showToast('Capacidad calculada', 'success');
+      addHistory(' Capacidad', `${data.capacity_bytes} bytes (${data.mode})`);
+    } else {
+      showToast(data.error || 'Error', 'error');
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('capacitySpinner').style.display = 'none';
+    document.getElementById('capacityBtn').disabled = false;
   }
-  showToast(data.success ? 'Capacidad calculada' : (data.error || 'Error'), data.success ? 'success' : 'error');
 });
+
+function drawCapacityChart(capacity, currentMode) {
+  const canvas = document.getElementById('capacityChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 200 * dpr;
+  ctx.scale(dpr, dpr);
+
+  const modes = ['FORTRESS', 'ARMOR', 'GHOST', 'PHANTOM', 'HYBRID'];
+  const multipliers = { 'FORTRESS': 0.3, 'ARMOR': 0.7, 'GHOST': 1.0, 'PHANTOM': 0.85, 'HYBRID': 0.8 };
+  const colors = { 'FORTRESS': '#ff6b6b', 'ARMOR': '#4dabf7', 'GHOST': '#51cf66', 'PHANTOM': '#ffd43b', 'HYBRID': '#a78bfa' };
+
+  const values = modes.map(m => Math.round(capacity * (multipliers[m] / multipliers[currentMode])));
+  const maxVal = Math.max(...values);
+
+  ctx.clearRect(0, 0, rect.width, 200);
+  const barW = (rect.width - 60) / modes.length;
+  const chartH = 150;
+  const bottom = 180;
+
+  modes.forEach((m, i) => {
+    const h = (values[i] / maxVal) * chartH;
+    const x = 30 + i * barW + barW * 0.15;
+    const y = bottom - h;
+    const w = barW * 0.7;
+
+    ctx.fillStyle = colors[m];
+    ctx.globalAlpha = m === currentMode ? 1 : 0.6;
+    ctx.fillRect(x, y, w, h);
+    ctx.globalAlpha = 1;
+
+    // Value
+    ctx.fillStyle = '#d8dee4';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(values[i] + ' B', x + w/2, y - 6);
+
+    // Label
+    ctx.fillStyle = '#7a8899';
+    ctx.fillText(m, x + w/2, bottom + 14);
+  });
+
+  document.getElementById('capacityChartBox').style.display = 'block';
+}
 
 document.getElementById('capacityClear').addEventListener('click', () => {
   document.getElementById('capacityFile').value = '';
   document.getElementById('capacityPreview').style.display = 'none';
+  document.getElementById('capacityFileName').textContent = '';
   document.getElementById('capacityResult').textContent = 'Esperando...';
+  document.getElementById('capacityMetrics').style.display = 'none';
+  document.getElementById('capacityChartBox').style.display = 'none';
+  document.getElementById('capacityRecommend').style.display = 'none';
   lastCapacityBytes = 0;
 });
 
-// ── BENCHMARK ──
-
+//  BENCHMARK 
 document.getElementById('benchmarkBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const file = document.getElementById('benchmarkFile').files[0];
   const msg = document.getElementById('benchmarkMsg').value;
   const mode = document.getElementById('benchmarkMode').value;
   if (!file) return showToast('Falta imagen', 'error');
 
-  const fd = new FormData();
-  fd.append('cover', file);
-  fd.append('message', msg);
-  fd.append('mode', mode);
+  setLoading(true, mode === 'ALL' ? 'Ejecutando benchmark comparativo...' : 'Ejecutando benchmark...');
+  document.getElementById('benchmarkSpinner').style.display = 'inline-block';
+  document.getElementById('benchmarkBtn').disabled = true;
 
-  const res = await fetch(API_BASE + '/benchmark', { method: 'POST', body: fd });
-  const data = await res.json();
-  document.getElementById('benchmarkResult').textContent = JSON.stringify(data, null, 2);
-  showToast(data.success ? 'Benchmark completado' : (data.error || 'Error'), data.success ? 'success' : 'error');
+  try {
+    if (mode === 'ALL') {
+      // Benchmark comparativo de todos los modos
+      const modes = ['FORTRESS', 'ARMOR', 'GHOST', 'PHANTOM', 'HYBRID'];
+      const results = [];
+      for (const m of modes) {
+        const fd = new FormData();
+        fd.append('cover', file);
+        fd.append('message', msg);
+        fd.append('mode', m);
+        const res = await fetch(API_BASE + '/benchmark', { method: 'POST', body: fd });
+        const data = await res.json();
+        results.push({ mode: m, ...data });
+      }
+
+      document.getElementById('benchmarkResult').textContent = JSON.stringify(results, null, 2);
+      drawBenchmarkChart(results);
+      renderBenchmarkTable(results);
+      showToast('Benchmark comparativo completado', 'success');
+      addHistory(' Benchmark', `Comparativa de ${modes.length} modos`);
+    } else {
+      const fd = new FormData();
+      fd.append('cover', file);
+      fd.append('message', msg);
+      fd.append('mode', mode);
+      const res = await fetch(API_BASE + '/benchmark', { method: 'POST', body: fd });
+      const data = await res.json();
+      document.getElementById('benchmarkResult').textContent = JSON.stringify(data, null, 2);
+
+      // Single mode chart
+      drawBenchmarkChart([{ mode, ...data }]);
+      showToast('Benchmark completado', 'success');
+      addHistory(' Benchmark', `Modo: ${mode}`);
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('benchmarkSpinner').style.display = 'none';
+    document.getElementById('benchmarkBtn').disabled = false;
+  }
 });
+
+function drawBenchmarkChart(results) {
+  const canvas = document.getElementById('benchmarkChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 220 * dpr;
+  ctx.scale(dpr, dpr);
+
+  const colors = { 'FORTRESS': '#ff6b6b', 'ARMOR': '#4dabf7', 'GHOST': '#51cf66', 'PHANTOM': '#ffd43b', 'HYBRID': '#a78bfa' };
+  const modes = results.map(r => r.mode);
+  const embedTimes = results.map(r => r.embed_time_ms || 0);
+  const extractTimes = results.map(r => r.extract_time_ms || 0);
+  const maxTime = Math.max(...embedTimes, ...extractTimes, 1);
+
+  ctx.clearRect(0, 0, rect.width, 220);
+  const barW = modes.length > 1 ? (rect.width - 80) / (modes.length * 2.5) : 40;
+  const chartH = 160;
+  const bottom = 190;
+  const groupW = modes.length > 1 ? (rect.width - 80) / modes.length : 120;
+
+  modes.forEach((m, i) => {
+    const gx = 40 + i * groupW;
+    const eh = (embedTimes[i] / maxTime) * chartH;
+    const xh = (extractTimes[i] / maxTime) * chartH;
+
+    // Embed bar
+    ctx.fillStyle = colors[m] || '#4dabf7';
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(gx, bottom - eh, barW, eh);
+    ctx.globalAlpha = 1;
+
+    // Extract bar
+    ctx.fillStyle = colors[m] || '#4dabf7';
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(gx + barW + 4, bottom - xh, barW, xh);
+    ctx.globalAlpha = 1;
+
+    // Values
+    ctx.fillStyle = '#d8dee4';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    if (eh > 15) ctx.fillText(Math.round(embedTimes[i]) + 'ms', gx + barW/2, bottom - eh - 4);
+    if (xh > 15) ctx.fillText(Math.round(extractTimes[i]) + 'ms', gx + barW + 4 + barW/2, bottom - xh - 4);
+
+    // Label
+    ctx.fillStyle = '#7a8899';
+    ctx.fillText(m, gx + barW + 2, bottom + 14);
+
+    // Roundtrip indicator
+    const ok = results[i].roundtrip_ok;
+    ctx.fillStyle = ok ? '#51cf66' : '#ff6b6b';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText(ok ? '' : '', gx + barW + 2, bottom + 26);
+  });
+
+  // Legend
+  ctx.fillStyle = '#7a8899';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillRect(40, 8, 10, 10);
+  ctx.fillStyle = '#d8dee4';
+  ctx.fillText('Embed', 54, 16);
+  ctx.fillStyle = '#7a8899';
+  ctx.globalAlpha = 0.4;
+  ctx.fillRect(100, 8, 10, 10);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#d8dee4';
+  ctx.fillText('Extract', 114, 16);
+
+  document.getElementById('benchmarkChartBox').style.display = 'block';
+}
+
+function renderBenchmarkTable(results) {
+  const box = document.getElementById('benchmarkTable');
+  let html = '<table style="width:100%; border-collapse:collapse; font-size:0.78rem">';
+  html += '<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left; padding:4px">Solicitado</th><th style="text-align:left; padding:4px">Usado</th><th style="text-align:right; padding:4px">Embed</th><th style="text-align:right; padding:4px">Extract</th><th style="text-align:center; padding:4px">OK</th><th style="text-align:right; padding:4px">PSNR</th></tr>';
+  const requestedModes = ['FORTRESS', 'ARMOR', 'GHOST', 'PHANTOM', 'HYBRID'];
+  results.forEach((r, idx) => {
+    const req = requestedModes[idx] || r.mode;
+    const isAuto = req === 'HYBRID' && r.mode !== 'HYBRID';
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:4px; color:var(--text-dim)">${req}${isAuto ? ' (auto)' : ''}</td>
+      <td style="padding:4px; color:var(--text-bright); font-weight:600">${r.mode}</td>
+      <td style="text-align:right; padding:4px">${Math.round(r.embed_time_ms || 0)} ms</td>
+      <td style="text-align:right; padding:4px">${Math.round(r.extract_time_ms || 0)} ms</td>
+      <td style="text-align:center; padding:4px">${r.roundtrip_ok ? '<span style="color:var(--accent2)"></span>' : '<span style="color:var(--danger)"></span>'}</td>
+      <td style="text-align:right; padding:4px">${r.psnr_db ? r.psnr_db.toFixed(1) : '-'} dB</td>
+    </tr>`;
+  });
+  html += '</table>';
+  // Anadir nota sobre modos DCT
+  html += '<div style="margin-top:8px; padding:8px; background:var(--bg); border-radius:4px; font-size:0.72rem; color:var(--warning)"> FORTRESS/ARMOR usan DCT + ECC. Si el roundtrip falla, puede deberse a incompatibilidad del motor con ciertos tamanos de mensaje. GHOST/PHANTOM (LSB puro) suelen ser mas fiables.</div>';
+  box.innerHTML = html;
+  document.getElementById('benchmarkTableBox').style.display = 'block';
+}
 
 document.getElementById('benchmarkClear').addEventListener('click', () => {
   document.getElementById('benchmarkFile').value = '';
   document.getElementById('benchmarkPreview').style.display = 'none';
+  document.getElementById('benchmarkFileName').textContent = '';
   document.getElementById('benchmarkResult').textContent = 'Esperando...';
+  document.getElementById('benchmarkChartBox').style.display = 'none';
+  document.getElementById('benchmarkTableBox').style.display = 'none';
 });
 
-// ── PUBLISH ──
+//  SIMULATE 
+document.getElementById('simulateBtn').addEventListener('click', async () => {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
+  const file = document.getElementById('simulateFileCover').files[0];
+  const msg = document.getElementById('simulateMsg').value;
+  const mode = document.getElementById('simulateMode').value;
+  const platform = document.getElementById('simulatePlatform').value;
 
+  if (!file || !msg) return showToast('Falta imagen o mensaje', 'error');
+
+  const fd = new FormData();
+  fd.append('cover', file);
+  fd.append('message', msg);
+  fd.append('mode', mode);
+  fd.append('platform', platform);
+
+  setLoading(true, 'Simulando procesamiento de plataforma...');
+  document.getElementById('simulateSpinner').style.display = 'inline-block';
+  document.getElementById('simulateBtn').disabled = true;
+
+  try {
+    const res = await fetch(API_BASE + '/simulate', { method: 'POST', body: fd });
+    const data = await res.json();
+    document.getElementById('simulateResult').textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      document.getElementById('simulateMetrics').style.display = 'grid';
+      document.getElementById('simMetricSurvive').textContent = data.survived ? ' Si' : ' No';
+      document.getElementById('simMetricSurvive').style.color = data.survived ? 'var(--accent2)' : 'var(--danger)';
+      document.getElementById('simMetricMode').textContent = data.mode_used || mode;
+      document.getElementById('simMetricTrans').textContent = (data.transformations || []).length;
+
+      if (data.transformations && data.transformations.length) {
+        document.getElementById('simulateTransList').textContent = data.transformations.map((t, i) => `${i+1}. ${t}`).join('\n');
+        document.getElementById('simulateTransBox').style.display = 'block';
+      }
+
+      showToast(data.survived ? '!Mensaje sobrevive a la plataforma!' : 'El mensaje NO sobrevive', data.survived ? 'success' : 'warning');
+      addHistory(' Simular', `${platform}: ${data.survived ? 'Sobrevive' : 'No sobrevive'}`);
+    } else {
+      const errMsg = data.error || 'Error desconocido';
+      let detail = '';
+      if (data.traceback) {
+        detail = '\n\n Detalle tecnico:\n' + data.traceback.substring(0, 500);
+      }
+      document.getElementById('simulateResult').textContent = ' ' + errMsg + detail;
+      showToast(errMsg, 'error');
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
+  } finally {
+    setLoading(false);
+    document.getElementById('simulateSpinner').style.display = 'none';
+    document.getElementById('simulateBtn').disabled = false;
+  }
+});
+
+document.getElementById('simulateClear').addEventListener('click', () => {
+  document.getElementById('simulateFileCover').value = '';
+  document.getElementById('simulatePreviewCover').style.display = 'none';
+  document.getElementById('simulateFileNameCover').textContent = '';
+  document.getElementById('simulateMsg').value = '';
+  document.getElementById('simulateResult').textContent = 'Esperando...';
+  document.getElementById('simulateMetrics').style.display = 'none';
+  document.getElementById('simulateTransBox').style.display = 'none';
+});
+
+//  PUBLISH 
 function setSteps(n) {
   for (let i = 1; i <= 5; i++) {
     const el = document.getElementById('step' + i);
@@ -991,23 +2007,10 @@ function setSteps(n) {
   }
 }
 
-// Mostrar credenciales según plataforma
-const CREDENTIAL_MAP = {
-  telegram:  ['TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
-  discord:   ['DISCORD_WEBHOOK_URL'],
-  imgur:     ['IMGUR_CLIENT_ID'],
-  reddit:    ['REDDIT_CLIENT_ID','REDDIT_CLIENT_SECRET','REDDIT_USERNAME','REDDIT_PASSWORD'],
-  twitter:   ['TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_TOKEN_SECRET'],
-  instagram: ['INSTAGRAM_BUSINESS_ACCOUNT_ID','META_PAGE_ACCESS_TOKEN'],
-  whatsapp:  ['WHATSAPP_BUSINESS_PHONE_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_RECIPIENT_PHONE'],
-  nostr:     ['NOSTR_PRIVATE_KEY']
-};
-
 document.getElementById('publishPlatform').addEventListener('change', function() {
   const platform = this.value;
   const box = document.getElementById('credentialsBox');
   if (!platform) { box.style.display = 'none'; return; }
-
   document.querySelectorAll('.cred-group').forEach(g => g.classList.remove('active'));
   const group = document.querySelector('.cred-group[data-platform="' + platform + '"]');
   if (group) {
@@ -1050,6 +2053,7 @@ function collectCredentials() {
 }
 
 async function doPublish(validate = false) {
+  if (!backendOnline) return showToast('Backend offline. Inicia el servidor primero.', 'error');
   const file = document.getElementById('publishFile').files[0];
   const platform = document.getElementById('publishPlatform').value;
   const caption = document.getElementById('publishCaption').value;
@@ -1061,9 +2065,8 @@ async function doPublish(validate = false) {
   fd.append('image', file);
   fd.append('platform', platform);
   if (caption) fd.append('caption', caption);
-  if (validate) fd.append('mode', mode);
+  if (validate && mode !== 'auto') fd.append('mode', mode);
 
-  // Añadir credenciales inline
   const creds = collectCredentials();
   if (Object.keys(creds).length > 0) {
     fd.append('credentials', JSON.stringify(creds));
@@ -1073,6 +2076,7 @@ async function doPublish(validate = false) {
   const spinId = validate ? 'validateSpinner' : 'publishSpinner';
   document.getElementById(spinId).style.display = 'inline-block';
   document.getElementById(btnId).disabled = true;
+  setLoading(true, validate ? 'Publicando y validando E2E...' : 'Publicando...');
 
   try {
     const endpoint = validate ? '/publish_validate' : '/publish';
@@ -1088,6 +2092,7 @@ async function doPublish(validate = false) {
       urlBox.onclick = () => { navigator.clipboard.writeText(data.url); showToast('URL copiada'); };
       document.getElementById('publishUrlBox').style.display = 'block';
       showToast('Publicado correctamente', 'success');
+      addHistory(' Publicar', platform + ': ' + data.url);
     } else if (data.error) {
       showToast(data.error, 'error');
     }
@@ -1100,22 +2105,23 @@ async function doPublish(validate = false) {
       box.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
           <span class="status-badge ${success ? 'status-ok' : 'status-err'}">
-            ${success ? '✅ E2E Exitoso' : '❌ E2E Fallido'}
+            ${success ? ' E2E Exitoso' : ' E2E Fallido'}
           </span>
         </div>
-        <div class="metric"><span>Mensaje extraído:</span><span class="value">${e2e.extracted_message || 'N/A'}</span></div>
-        <div class="metric"><span>Tamaño original:</span><span class="value">${e2e.original_size || 'N/A'}</span></div>
-        <div class="metric"><span>Tamaño descargado:</span><span class="value">${e2e.downloaded_size || 'N/A'}</span></div>
+        <div class="metric"><span>Mensaje extraido:</span><span class="value">${e2e.extracted_message || 'N/A'}</span></div>
+        <div class="metric"><span>Tamano original:</span><span class="value">${e2e.original_size || 'N/A'}</span></div>
+        <div class="metric"><span>Tamano descargado:</span><span class="value">${e2e.downloaded_size || 'N/A'}</span></div>
         <div class="metric"><span>PSNR:</span><span class="value">${e2e.psnr || 'N/A'}</span></div>
         <div class="metric"><span>Hash original:</span><span class="value" style="font-size:0.7rem">${e2e.original_hash || 'N/A'}</span></div>
         <div class="metric"><span>Hash descargado:</span><span class="value" style="font-size:0.7rem">${e2e.downloaded_hash || 'N/A'}</span></div>
       `;
       document.getElementById('e2eResultBox').style.display = 'block';
-      showToast(success ? 'Validación E2E exitosa' : 'Validación E2E fallida', success ? 'success' : 'error');
+      showToast(success ? 'Validacion E2E exitosa' : 'Validacion E2E fallida', success ? 'success' : 'error');
     }
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
   } finally {
+    setLoading(false);
     document.getElementById(spinId).style.display = 'none';
     document.getElementById(btnId).disabled = false;
     updatePublishSteps();
@@ -1127,6 +2133,7 @@ document.getElementById('publishValidateBtn').addEventListener('click', () => do
 document.getElementById('publishClear').addEventListener('click', () => {
   document.getElementById('publishFile').value = '';
   document.getElementById('publishPreview').style.display = 'none';
+  document.getElementById('publishFileName').textContent = '';
   document.getElementById('publishPlatform').value = '';
   document.getElementById('publishCaption').value = '';
   document.getElementById('publishResult').textContent = 'Esperando...';
@@ -1138,20 +2145,7 @@ document.getElementById('publishClear').addEventListener('click', () => {
   setSteps(1);
 });
 
-// Keyboard shortcuts
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchTab('embed'); }
-  if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchTab('extract'); }
-  if (e.ctrlKey && e.key === '3') { e.preventDefault(); switchTab('analyze'); }
-  if (e.ctrlKey && e.key === '4') { e.preventDefault(); switchTab('capacity'); }
-  if (e.ctrlKey && e.key === '5') { e.preventDefault(); switchTab('benchmark'); }
-  if (e.ctrlKey && e.key === '6') { e.preventDefault(); switchTab('publish'); }
-});
-
-setSteps(1);
-
-// ── CREDENTIALS MANAGEMENT ──
-
+//  CREDENTIALS MANAGEMENT 
 const CRED_FIELDS = {
   telegram:   [
     {key:"bot_token", label:"Bot Token", type:"password", placeholder:"123456:ABC-DEF..."},
@@ -1167,7 +2161,7 @@ const CRED_FIELDS = {
     {key:"client_id", label:"Client ID", type:"text", placeholder:"App Client ID"},
     {key:"client_secret", label:"Client Secret", type:"password", placeholder:"App Client Secret"},
     {key:"username", label:"Username", type:"text", placeholder:"Tu usuario Reddit"},
-    {key:"password", label:"Password", type:"password", placeholder:"Tu contraseña Reddit"},
+    {key:"password", label:"Password", type:"password", placeholder:"Tu contrasena Reddit"},
   ],
   twitter:    [
     {key:"api_key", label:"API Key", type:"text", placeholder:"Consumer API Key"},
@@ -1206,7 +2200,7 @@ document.getElementById('loadCredFields').addEventListener('click', () => {
   });
   html += '</div>';
   html += `<div style="margin-top:10px; display:flex; gap:8px">
-    <button class="btn btn-success" id="saveCredsBtn">💾 Guardar credenciales</button>
+    <button class="btn btn-success" id="saveCredsBtn"> Guardar credenciales</button>
     <button class="btn btn-secondary" id="cancelCredsBtn">Cancelar</button>
   </div>`;
   box.innerHTML = html;
@@ -1219,19 +2213,22 @@ document.getElementById('loadCredFields').addEventListener('click', () => {
       if (val) credentials[f.key] = val;
     });
 
-    const res = await fetch(API_BASE + '/configure_platform', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({platform, credentials}),
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(data.message || 'Credenciales guardadas', 'success');
-      box.style.display = 'none';
-      loadSavedCredentials();
-      loadPlatformStatus();
-    } else {
-      showToast(data.error || 'Error guardando credenciales', 'error');
+    try {
+      const res = await fetch(API_BASE + '/configure_platform', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({platform, credentials}),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Credenciales guardadas', 'success');
+        box.style.display = 'none';
+        loadSavedCredentials();
+      } else {
+        showToast(data.error || 'Error guardando credenciales', 'error');
+      }
+    } catch (e) {
+      showToast('Error de red: ' + e.message, 'error');
     }
   });
 
@@ -1241,12 +2238,15 @@ document.getElementById('loadCredFields').addEventListener('click', () => {
 });
 
 document.getElementById('clearAllCreds').addEventListener('click', async () => {
-  const res = await fetch(API_BASE + '/clear_credentials', {method: 'POST'});
-  const data = await res.json();
-  if (data.success) {
-    showToast('Credenciales eliminadas de memoria', 'success');
-    loadSavedCredentials();
-    loadPlatformStatus();
+  try {
+    const res = await fetch(API_BASE + '/clear_credentials', {method: 'POST'});
+    const data = await res.json();
+    if (data.success) {
+      showToast('Credenciales eliminadas de memoria', 'success');
+      loadSavedCredentials();
+    }
+  } catch (e) {
+    showToast('Error de red: ' + e.message, 'error');
   }
 });
 
@@ -1265,13 +2265,13 @@ async function loadSavedCredentials() {
       const source = info.source || 'memory';
       html += `<div class="platform-card" style="margin-bottom:6px">
         <div class="platform-info">
-          <span class="platform-icon">🔑</span>
+          <span class="platform-icon"></span>
           <div>
             <div class="platform-name">${name.charAt(0).toUpperCase() + name.slice(1)}</div>
             <div class="platform-desc">${info.fields ? info.fields.join(', ') : ''} (${source})</div>
           </div>
         </div>
-        <span class="status-badge status-ok">✅ Activo</span>
+        <span class="status-badge status-ok"> Activo</span>
       </div>`;
     });
     box.innerHTML = html;
@@ -1280,9 +2280,21 @@ async function loadSavedCredentials() {
   }
 }
 
-// Cargar al iniciar
-loadSavedCredentials();
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchTab('embed'); }
+  if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchTab('extract'); }
+  if (e.ctrlKey && e.key === '3') { e.preventDefault(); switchTab('analyze'); }
+  if (e.ctrlKey && e.key === '4') { e.preventDefault(); switchTab('capacity'); }
+  if (e.ctrlKey && e.key === '5') { e.preventDefault(); switchTab('benchmark'); }
+  if (e.ctrlKey && e.key === '6') { e.preventDefault(); switchTab('simulate'); }
+  if (e.ctrlKey && e.key === '7') { e.preventDefault(); switchTab('publish'); }
+});
 
+setSteps(1);
+checkBackend();
+setInterval(checkBackend, 30000);
+loadSavedCredentials();
 </script>
 </body>
 </html>
